@@ -1,0 +1,203 @@
+# tests\fixtures\scenarios.yaml
+
+# Szenario 1: Neuer Meter installiert
+meter_change:
+  description: "New meter installed - first values should be accepted"
+  cycles:
+    - # Cycle 0: Installation - erster Wert 0
+      energy_grid_exported: 0
+      energy_grid_accumulated: 0
+      energy_yield_accumulated: 0
+      battery_charge_total: 0
+      battery_discharge_total: 0
+
+    - # Cycle 1: Erste Produktion - kleine Werte müssen durchkommen!
+      energy_grid_exported: 0.03
+      energy_grid_accumulated: 0.01
+      energy_yield_accumulated: 0.05
+      battery_charge_total: 0.02
+      battery_discharge_total: 0.01
+
+    - # Cycle 2: Normale Werte
+      energy_grid_exported: 0.15
+      energy_grid_accumulated: 0.05
+      energy_yield_accumulated: 0.25
+      battery_charge_total: 0.10
+      battery_discharge_total: 0.03
+
+# Szenario 2: Modbus-Lesefehler (Drops auf 0)
+modbus_errors:
+  description: "Modbus read errors causing drops to zero"
+  cycles:
+    - # Cycle 0: Normale Werte
+      energy_grid_exported: 5432.1
+      energy_yield_accumulated: 15420.5
+      battery_charge_total: 4804.5
+
+    - # Cycle 1: Modbus-Fehler → 0 (soll gefiltert werden!)
+      energy_grid_exported: 0
+      energy_yield_accumulated: 0
+      battery_charge_total: 0
+
+    - # Cycle 2: Wieder normal (höher als vor dem Fehler)
+      energy_grid_exported: 5432.8
+      energy_yield_accumulated: 15421.2
+      battery_charge_total: 4805.1
+
+# Szenario 3: Toleranz-Grenze (5%)
+tolerance_edge:
+  description: "Values at 5% tolerance threshold"
+  cycles:
+    - # Cycle 0: Baseline
+      energy_grid_exported: 10000.0
+
+    - # Cycle 1: 4.9% Drop → Sollte akzeptiert werden (innerhalb Toleranz)
+      energy_grid_exported: 9510.0
+
+    - # Cycle 2: Zurück zu 10000
+      energy_grid_exported: 10000.0
+
+    - # Cycle 3: 5.1% Drop → Sollte gefiltert werden (außerhalb Toleranz)
+      energy_grid_exported: 9490.0
+
+# Szenario 4: Negative Werte (unmöglich für Energy Counter)
+negative_values:
+  description: "Negative values should always be filtered"
+  cycles:
+    - energy_grid_exported: 5432.1
+
+    - # Negativer Wert → muss gefiltert werden
+      energy_grid_exported: -10.5
+
+    - # Wieder positiv
+      energy_grid_exported: 5432.8
+
+# Szenario 5: Add-on Restart (HANTs Problem!)
+addon_restart:
+  description: "Add-on restarts - sensor becomes unavailable then returns"
+  cycles:
+    - # Cycle 0: Normaler Betrieb
+      energy_grid_exported: 5432.1
+      energy_yield_accumulated: 15420.5
+      battery_charge_total: 4804.5
+
+    - # Cycle 1: Noch normal
+      energy_grid_exported: 5432.8
+      energy_yield_accumulated: 15421.2
+      battery_charge_total: 4805.1
+
+    # === RESTART PASSIERT HIER ===
+    # Filter wird reset, last_values sind weg
+
+    - # Cycle 2: Nach Restart - erster Wert nach Filter-Reset
+      energy_grid_exported: 5433.5 # ← Höher als vor Restart
+      energy_yield_accumulated: 15422.0
+      battery_charge_total: 4805.8
+
+    - # Cycle 3: Normaler Betrieb wieder
+      energy_grid_exported: 5434.2
+      energy_yield_accumulated: 15422.7
+      battery_charge_total: 4806.5
+
+# Szenario 6: Startup mit letztem bekannten Wert
+startup_with_previous_value:
+  description: "Startup - last value from before shutdown"
+  cycles:
+    - # Cycle 0: Letzter Wert vor Shutdown (z.B. 23:59 Uhr)
+      energy_grid_exported: 5432.1
+
+    # === SHUTDOWN ÜBER NACHT ===
+
+    - # Cycle 1: Startup am nächsten Morgen (6:00 Uhr)
+      # Wert ist HÖHER (Nacht-Einspeisung ist passiert)
+      energy_grid_exported: 5435.8
+
+    - # Cycle 2: Normal weiter
+      energy_grid_exported: 5436.5
+
+# Szenario 7: Modbus-Fehler während laufendem Betrieb
+intermittent_modbus_failures:
+  description: "Random Modbus failures during operation"
+  cycles:
+    - energy_grid_exported: 5432.1
+
+    - energy_grid_exported: 5432.8
+
+    - # Modbus-Fehler → 0
+      energy_grid_exported: 0
+
+    - # Wieder normal (sollte auf 5433.5 springen, nicht 0)
+      energy_grid_exported: 5433.5
+
+    - # Nochmal Fehler
+      energy_grid_exported: 0
+
+    - # Wieder normal
+      energy_grid_exported: 5434.2
+
+# Szenario 8: HA Utility Meter Edge Case
+utility_meter_reset_simulation:
+  description: "Simulates what HA Utility Meter sees during restart"
+  cycles:
+    - # Tag 1, 23:50 Uhr
+      energy_grid_exported: 5432.1
+      timestamp: "2026-01-28T23:50:00"
+
+    - # Tag 2, 00:05 Uhr (nach Midnight Reset)
+      # Utility Meter hat resetet, aber Sensor-Wert ist weiter gestiegen
+      energy_grid_exported: 5432.3
+      timestamp: "2026-01-29T00:05:00"
+
+    - # Tag 2, 06:00 Uhr (nach Add-on Restart)
+      energy_grid_exported: 5435.8
+      timestamp: "2026-01-29T06:00:00"
+
+# ========================================
+# HANT Issue #7: Register Timeouts
+# ========================================
+register_timeouts:
+  cycles:
+    - # Cycle 0: Alle Keys vorhanden
+      energy_grid_exported: 9799.50
+      energy_yield_accumulated: 18052.68
+      battery_charge_total: 1234.56
+
+    - # Cycle 1: Register timeout (key fehlt komplett)
+      energy_yield_accumulated: 18053.20
+      battery_charge_total: 1234.60
+      errors:
+        - energy_grid_exported # Timeout!
+
+    - # Cycle 2: Alle Keys wieder da
+      energy_grid_exported: 9800.20
+      energy_yield_accumulated: 18054.00
+      battery_charge_total: 1234.70
+
+# ========================================
+# HANT Issue #7: Zero Drop Errors
+# ========================================
+zero_drop_errors:
+  cycles:
+    - # Cycle 0: Normal
+      energy_grid_exported: 9799.50
+      energy_yield_accumulated: 18052.68
+
+    - # Cycle 1: Normal (+0.7 kWh)
+      energy_grid_exported: 9800.20
+      energy_yield_accumulated: 18053.20
+
+    - # Cycle 2: Zero drop! (Modbus error returns 0)
+      energy_grid_exported: 0
+      energy_yield_accumulated: 18054.00
+
+    - # Cycle 3: Recovery (+0.8 kWh from 9800.20)
+      energy_grid_exported: 9801.00
+      energy_yield_accumulated: 18055.00
+
+    - # Cycle 4: Nochmal zero drop!
+      energy_grid_exported: 0
+      energy_yield_accumulated: 18056.00
+
+    - # Cycle 5: Final recovery (+0.5 kWh from 9801.00)
+      energy_grid_exported: 9801.50
+      energy_yield_accumulated: 18057.00

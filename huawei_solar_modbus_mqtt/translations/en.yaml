@@ -1,0 +1,66 @@
+# huawei_solar_modbus_mqtt/translations/en.yaml
+
+configuration:
+  # === MODBUS Settings ===
+  modbus_host:
+    name: Inverter IP Address
+    description: IP address of the Huawei inverter (e.g. 192.168.1.100)
+
+  modbus_port:
+    name: Modbus Port
+    description: Modbus TCP port (default 502)
+
+  modbus_auto_detect_slave_id:
+    name: Auto-detect Slave ID
+    description: |
+      Automatically detects the correct Slave ID.
+      Tries common values (1, 2, 100) and uses the first working one.
+
+  slave_id:
+    name: Slave ID (manual)
+    description: |
+      Modbus Slave ID (1-247).
+      Common values: 1 (most inverters), 2 (alternative configurations), 100 (some SDongles).
+      Only used when auto-detection is disabled.
+
+  # === MQTT Configuration ===
+  mqtt_host:
+    name: MQTT Broker
+    description: Hostname of the MQTT broker (default core-mosquitto for Home Assistant add-on)
+
+  mqtt_port:
+    name: MQTT Port
+    description: Port of the MQTT broker (default 1883)
+
+  mqtt_user:
+    name: MQTT Username
+    description: Optional - Leave empty to use credentials from Home Assistant MQTT service
+
+  mqtt_password:
+    name: MQTT Password
+    description: Optional - Leave empty to use credentials from Home Assistant MQTT service
+
+  mqtt_topic:
+    name: MQTT Topic Prefix
+    description: Base topic under which sensor data is published (e.g. huawei-solar)
+
+  # === Advanced Settings ===
+  log_level:
+    name: Log Level
+    description: "TRACE: Everything incl. Modbus bytes | DEBUG: Detailed performance metrics | INFO: Important events (recommended) | WARNING/ERROR: Problems only"
+
+  status_timeout:
+    name: Status Timeout
+    description: Time in seconds after which the inverter is marked as offline when no data is received (default 180s)
+
+  poll_interval:
+    name: Poll Interval
+    description: Interval in seconds between Modbus queries from the inverter. Recommended 30-60s for optimal balance between freshness and network load (default 30s)
+
+  enable_batching:
+    name: Smart Batch Reading
+    description: "Groups registers by Modbus address proximity and reads them in multiple batch requests. Dramatically reduces cycle times (60s → 5-10s) and improves data consistency. Recommended for all setups. Falls back to sequential reading if batching fails."
+
+  batch_max_gap:
+    name: Maximum Address Gap
+    description: "Maximum Modbus address gap (in registers) allowed within a batch group. Lower values create smaller batches (slower but more compatible). Higher values create larger batches (faster but may fail). Typical range: 50-200. Default: 50 (optimal for most Huawei inverters)."

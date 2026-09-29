@@ -1,0 +1,66 @@
+# huawei_solar_modbus_mqtt/translations/de.yaml
+
+configuration:
+  # === MODBUS Einstellungen ===
+  modbus_host:
+    name: Inverter IP-Adresse
+    description: IP-Adresse des Huawei Wechselrichters (z.B. 192.168.1.100)
+
+  modbus_port:
+    name: Modbus Port
+    description: Modbus TCP Port (Standard 502)
+
+  modbus_auto_detect_slave_id:
+    name: Slave ID automatisch erkennen
+    description: |
+      Erkennt automatisch die richtige Slave ID.
+      Probiert gängige Werte (1, 2, 100) und nutzt den ersten funktionierenden.
+
+  slave_id:
+    name: Slave ID (manuell)
+    description: |
+      Modbus Slave ID (1-247).
+      Häufige Werte: 1 (meiste Wechselrichter), 2 (alternative Konfigurationen), 100 (manche SDongles).
+      Wird nur verwendet wenn Auto-Erkennung deaktiviert ist.
+
+  # === MQTT Konfiguration ===
+  mqtt_host:
+    name: MQTT Broker
+    description: Hostname des MQTT Brokers (Standard core-mosquitto für Home Assistant Add-on)
+
+  mqtt_port:
+    name: MQTT Port
+    description: Port des MQTT Brokers (Standard 1883)
+
+  mqtt_user:
+    name: MQTT Benutzername
+    description: Optional - Leer lassen, um Zugangsdaten aus Home Assistant MQTT Service zu verwenden
+
+  mqtt_password:
+    name: MQTT Passwort
+    description: Optional - Leer lassen, um Zugangsdaten aus Home Assistant MQTT Service zu verwenden
+
+  mqtt_topic:
+    name: MQTT Topic Präfix
+    description: Basis-Topic unter dem die Sensordaten veröffentlicht werden (z.B. huawei-solar)
+
+  # === Erweiterte Einstellungen ===
+  log_level:
+    name: Log-Level
+    description: "TRACE: Alles inkl. Modbus-Bytes | DEBUG: Detaillierte Performance-Metriken | INFO: Wichtige Ereignisse (empfohlen) | WARNING/ERROR: Nur Probleme"
+
+  status_timeout:
+    name: Status Timeout
+    description: Zeit in Sekunden, nach der der Wechselrichter als offline markiert wird wenn keine Daten empfangen werden (Standard 180s)
+
+  poll_interval:
+    name: Abfrageintervall
+    description: Intervall in Sekunden zwischen Modbus-Abfragen vom Wechselrichter. Empfohlen 30-60s für optimale Balance zwischen Aktualität und Netzwerklast (Standard 30s)
+
+  enable_batching:
+    name: Intelligentes Batch-Lesen
+    description: "Gruppiert Register nach Modbus-Adress-Nähe und liest sie in mehreren Batch-Anfragen. Reduziert Zykluszeiten drastisch (60s → 5-10s) und verbessert Datenkonsistenz. Empfohlen für alle Setups. Fällt auf sequentielles Lesen zurück, wenn Batching fehlschlägt."
+
+  batch_max_gap:
+    name: Maximaler Adress-Abstand
+    description: "Maximaler Modbus-Adress-Abstand (in Registern) innerhalb einer Batch-Gruppe. Kleinere Werte erzeugen kleinere Batches (langsamer, aber kompatibler). Größere Werte erzeugen größere Batches (schneller, aber kann fehlschlagen). Typischer Bereich: 50-200. Standard: 50 (optimal für die meisten Huawei-Wechselrichter)."
