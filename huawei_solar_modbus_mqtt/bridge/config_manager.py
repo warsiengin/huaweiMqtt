@@ -14,6 +14,7 @@ Verwendet eine flache Konfigurationsstruktur (keine Verschachtelung) für Home A
 import json
 import logging
 import os
+import re
 from pathlib import Path
 from typing import Any, cast
 
@@ -86,7 +87,8 @@ class ConfigManager:
             "mqtt_port": self._parse_int_env("HUAWEI_MQTT_PORT", default=1883),
             "mqtt_user": os.getenv("HUAWEI_MQTT_USER", ""),
             "mqtt_password": os.getenv("HUAWEI_MQTT_PASSWORD", ""),
-            "mqtt_topic": os.getenv("HUAWEI_MQTT_TOPIC", "huawei-solar"),
+            "mqtt_topic": os.getenv("HUAWEI_MQTT_TOPIC", "huaweiInverter_1"),
+            "instance_id": os.getenv("HUAWEI_INSTANCE_ID", ""),
             # Advanced settings
             "log_level": os.getenv("HUAWEI_LOG_LEVEL", "INFO"),
             "status_timeout": self._parse_int_env("HUAWEI_STATUS_TIMEOUT", default=180),
@@ -182,8 +184,13 @@ class ConfigManager:
 
     @property
     def mqtt_topic(self) -> str:
-        """Get MQTT topic prefix."""
-        return cast(str, self._config.get("mqtt_topic", "huawei-solar"))
+        """Get MQTT topic prefix, defaulting to the add-on's configured topic."""
+        return cast(str, self._config.get("mqtt_topic", "huaweiInverter_1"))
+
+    @property
+    def instance_id(self) -> str:
+        """Get the stable optional Home Assistant/MQTT discovery instance ID."""
+        return cast(str, self._config.get("instance_id", ""))
 
     # === Advanced Configuration ===
 
@@ -251,6 +258,11 @@ class ConfigManager:
 
         if not self.mqtt_topic:
             errors.append("mqtt_topic is required")
+
+        if not isinstance(self.instance_id, str) or (
+            self.instance_id and re.fullmatch(r"[a-z0-9_-]{1,32}", self.instance_id) is None
+        ):
+            errors.append("instance_id must be empty or 1-32 lowercase letters, digits, underscores, or hyphens")
 
         # Advanced validation
         valid_log_levels = ["TRACE", "DEBUG", "INFO", "WARNING", "ERROR"]

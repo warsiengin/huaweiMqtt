@@ -85,6 +85,36 @@ class TestMain:
         assert main_module._state.cycle_count == 0
 
     @pytest.mark.asyncio
+    async def test_invalid_configuration_exits_before_startup(self, mock_config):
+        mock_config.validate.return_value = ["instance_id is invalid"]
+        with (
+            patch("bridge.main.ConfigManager", return_value=mock_config),
+            patch("bridge.main.init_logging") as mock_init_logging,
+            patch("bridge.main.initialize_bridge", new_callable=AsyncMock) as mock_initialize,
+            pytest.raises(SystemExit, match="1"),
+        ):
+            await main()
+
+        mock_init_logging.assert_not_called()
+        mock_initialize.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_initialize_bridge_passes_instance_id_to_discovery(self, mock_config, mock_client):
+        mock_config.instance_id = "inverter_east"
+        with (
+            patch("bridge.main.determine_slave_id", new_callable=AsyncMock, return_value=1),
+            patch("bridge.main.setup_mqtt", new_callable=AsyncMock, return_value=True),
+            patch("bridge.main.publish_status", new_callable=AsyncMock),
+            patch("bridge.main.publish_discovery_configs", new_callable=AsyncMock) as mock_discovery,
+            patch("bridge.main.setup_modbus", new_callable=AsyncMock, return_value=mock_client),
+            patch("bridge.main.get_filter"),
+        ):
+            result = await main_module.initialize_bridge(mock_config)
+
+        assert result is mock_client
+        mock_discovery.assert_awaited_once_with(mock_config.mqtt_topic, "inverter_east")
+
+    @pytest.mark.asyncio
     async def test_registers_sigterm_handler_for_current_task(self, mock_config, mock_client):
         """main() registers SIGTERM cancellation on the running event loop."""
         with (

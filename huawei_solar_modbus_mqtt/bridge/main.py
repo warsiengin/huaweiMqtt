@@ -723,7 +723,7 @@ async def initialize_bridge(config: ConfigManager) -> AsyncHuaweiSolarClient | N
     await publish_status("offline", config.mqtt_topic)
 
     try:
-        await publish_discovery_configs(config.mqtt_topic)
+        await publish_discovery_configs(config.mqtt_topic, config.instance_id)
         logger.info("📢 Discovery published")
     except Exception as e:
         logger.error("❌ Discovery failed: %s", e)
@@ -818,6 +818,9 @@ async def main() -> None:
     # can rely on a valid and validated config object.
     try:
         config = ConfigManager()
+        validation_errors = config.validate()
+        if validation_errors:
+            raise ConfigurationError("Invalid configuration: " + "; ".join(validation_errors))
     except Exception as e:
         # Logging is not initialized yet, therefore print() is used here.
         print(f"❌ Configuration error: {e}")

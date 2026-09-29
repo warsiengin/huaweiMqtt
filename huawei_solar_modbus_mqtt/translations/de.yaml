@@ -44,6 +44,10 @@ configuration:
     name: MQTT Topic Präfix
     description: Basis-Topic unter dem die Sensordaten veröffentlicht werden (z.B. huawei-solar)
 
+  instance_id:
+    name: Instanz-ID
+    description: Optionale stabile ID, um Home-Assistant-Discovery-Entitäten und Geräte zu trennen. Für jede Instanz eine andere ID setzen; leer lassen, um die bisherige Identität für eine einzelne Instanz beizubehalten.
+
   # === Erweiterte Einstellungen ===
   log_level:
     name: Log-Level

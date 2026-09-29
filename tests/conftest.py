@@ -44,6 +44,8 @@ def mock_config():
     config.mqtt_host = "localhost"
     config.mqtt_port = 1883
     config.mqtt_topic = "huawei-solar"
+    config.instance_id = ""
+    config.validate.return_value = []
     config.mqtt_user = None
     config.mqtt_password = None
     config.poll_interval = 30

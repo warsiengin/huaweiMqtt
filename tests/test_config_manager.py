@@ -42,6 +42,7 @@ class TestConfigManagerLoading:
                 "mqtt_user": "testuser",
                 "mqtt_password": "testpass",
                 "mqtt_topic": "test-topic",
+                "instance_id": "inverter_east",
                 "log_level": "DEBUG",
                 "status_timeout": 120,
                 "poll_interval": 20,
@@ -59,6 +60,7 @@ class TestConfigManagerLoading:
         assert config.mqtt_user == "testuser"
         assert config.mqtt_password == "testpass"
         assert config.mqtt_topic == "test-topic"
+        assert config.instance_id == "inverter_east"
         assert config.log_level == "DEBUG"
         assert config.status_timeout == 120
         assert config.poll_interval == 20
@@ -76,6 +78,7 @@ class TestConfigManagerLoading:
         monkeypatch.setenv("HUAWEI_MQTT_USER", "envuser")
         monkeypatch.setenv("HUAWEI_MQTT_PASSWORD", "envpass")
         monkeypatch.setenv("HUAWEI_MQTT_TOPIC", "env-topic")
+        monkeypatch.setenv("HUAWEI_INSTANCE_ID", "inverter_west")
         monkeypatch.setenv("HUAWEI_LOG_LEVEL", "ERROR")
         monkeypatch.setenv("HUAWEI_STATUS_TIMEOUT", "90")
         monkeypatch.setenv("HUAWEI_POLL_INTERVAL", "60")
@@ -93,6 +96,7 @@ class TestConfigManagerLoading:
         assert config.mqtt_user == "envuser"
         assert config.mqtt_password == "envpass"
         assert config.mqtt_topic == "env-topic"
+        assert config.instance_id == "inverter_west"
         assert config.log_level == "ERROR"
         assert config.status_timeout == 90
         assert config.poll_interval == 60
@@ -142,6 +146,7 @@ class TestConfigManagerProperties:
         assert config.mqtt_user == "user"
         assert config.mqtt_password == "pass"
         assert config.mqtt_topic == "test"
+        assert config.instance_id == ""
 
     def test_advanced_properties(self, config):
         assert config.log_level == "WARNING"
@@ -240,6 +245,16 @@ class TestConfigManagerValidation:
             )
             assert any("batch_max_gap" in err for err in config.validate())
 
+    @pytest.mark.parametrize("instance_id", ["", "inverter_1", "west-2"])
+    def test_valid_instance_ids_are_accepted(self, tmp_path, instance_id):
+        config = _make_config(tmp_path, {"instance_id": instance_id})
+        assert not any("instance_id" in error for error in config.validate())
+
+    @pytest.mark.parametrize("instance_id", ["Inverter_1", "west inverter", "west/1", "x" * 33, 123])
+    def test_invalid_instance_ids_are_rejected(self, tmp_path, instance_id):
+        config = _make_config(tmp_path, {"instance_id": instance_id})
+        assert any("instance_id" in error for error in config.validate())
+
 
 # ---------------------------------------------------------------------------
 # TestConfigManagerEnvParsing
@@ -298,6 +313,7 @@ class TestConfigManagerEdgeCases:
             "HUAWEI_MQTT_USER",
             "HUAWEI_MQTT_PASSWORD",
             "HUAWEI_MQTT_TOPIC",
+            "HUAWEI_INSTANCE_ID",
             "HUAWEI_LOG_LEVEL",
             "HUAWEI_STATUS_TIMEOUT",
             "HUAWEI_POLL_INTERVAL",
@@ -312,7 +328,8 @@ class TestConfigManagerEdgeCases:
         assert config.slave_id == 1
         assert config.mqtt_host == "core-mosquitto"
         assert config.mqtt_port == 1883
-        assert config.mqtt_topic == "huawei-solar"
+        assert config.mqtt_topic == "huaweiInverter_1"
+        assert config.instance_id == ""
         assert config.log_level == "INFO"
         assert config.status_timeout == 180
         assert config.poll_interval == 30
@@ -440,6 +457,7 @@ class TestConfigManagerConsistency:
             "mqtt_user": "testuser",
             "mqtt_password": "testpass",
             "mqtt_topic": "test-prefix",
+            "instance_id": "inverter_east",
             "log_level": "DEBUG",
             "status_timeout": 120,
             "poll_interval": 45,
@@ -457,6 +475,7 @@ class TestConfigManagerConsistency:
             "HUAWEI_MQTT_USER": "testuser",
             "HUAWEI_MQTT_PASSWORD": "testpass",
             "HUAWEI_MQTT_TOPIC": "test-prefix",
+            "HUAWEI_INSTANCE_ID": "inverter_east",
             "HUAWEI_LOG_LEVEL": "DEBUG",
             "HUAWEI_STATUS_TIMEOUT": "120",
             "HUAWEI_POLL_INTERVAL": "45",
@@ -475,6 +494,7 @@ class TestConfigManagerConsistency:
             "mqtt_user",
             "mqtt_password",
             "mqtt_topic",
+            "instance_id",
             "log_level",
             "status_timeout",
             "poll_interval",
@@ -503,6 +523,7 @@ class TestConfigManagerConsistency:
             ("HUAWEI_MQTT_USER", "mqtt_user", "testuser", "testuser"),
             ("HUAWEI_MQTT_PASSWORD", "mqtt_password", "testpass", "testpass"),
             ("HUAWEI_MQTT_TOPIC", "mqtt_topic", "test", "test"),
+            ("HUAWEI_INSTANCE_ID", "instance_id", "inverter_east", "inverter_east"),
             ("HUAWEI_LOG_LEVEL", "log_level", "DEBUG", "DEBUG"),
             ("HUAWEI_STATUS_TIMEOUT", "status_timeout", "120", 120),
             ("HUAWEI_POLL_INTERVAL", "poll_interval", "45", 45),

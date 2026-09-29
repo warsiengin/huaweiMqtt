@@ -146,11 +146,17 @@ async def disconnect_mqtt() -> None:
         _is_connected = False
 
 
-def _build_sensor_config(sensor: dict[str, Any], base_topic: str, device_config: dict[str, Any]) -> dict[str, Any]:
+def _build_sensor_config(
+    sensor: dict[str, Any],
+    base_topic: str,
+    device_config: dict[str, Any],
+    instance_id: str = "",
+) -> dict[str, Any]:
     """Create MQTT Discovery config for a single sensor."""
+    identity_suffix = f"_{instance_id}" if instance_id else ""
     config = {
         "name": sensor["name"],
-        "unique_id": f"huawei_solar_{sensor['key']}",
+        "unique_id": f"huawei_solar{identity_suffix}_{sensor['key']}",
         "state_topic": base_topic,
         "value_template": sensor.get(
             "value_template",
@@ -191,19 +197,21 @@ async def _publish_sensor_configs(
     base_topic: str,
     sensors: list[dict[str, Any]],
     device_config: dict[str, Any],
+    instance_id: str = "",
 ) -> int:
     """Publish MQTT Discovery configs for a list of sensors."""
+    node_id = f"huawei_solar_{instance_id}" if instance_id else "huawei_solar"
     count = 0
     for sensor in sensors:
-        config = _build_sensor_config(sensor, base_topic, device_config)
-        topic = f"homeassistant/sensor/huawei_solar/{sensor['key']}/config"
+        config = _build_sensor_config(sensor, base_topic, device_config, instance_id)
+        topic = f"homeassistant/sensor/{node_id}/{sensor['key']}/config"
         result = client.publish(topic, json.dumps(config), qos=1, retain=True)
         await _wait_for_publish(result, 1.0)
         count += 1
     return count
 
 
-async def publish_discovery_configs(base_topic: str) -> None:
+async def publish_discovery_configs(base_topic: str, instance_id: str = "") -> None:
     """Publish all MQTT Discovery configs (once at startup)."""
     if not _is_connected:
         logger.warning("⚠️ MQTT not connected, skipping discovery")
@@ -212,28 +220,36 @@ async def publish_discovery_configs(base_topic: str) -> None:
     logger.info("📊 Publishing MQTT Discovery")
     client = _get_mqtt_client()
 
+    identity_suffix = f"_{instance_id}" if instance_id else ""
     device_config = {
-        "identifiers": ["huawei_solar_modbus"],
-        "name": "Huawei Solar Inverter",
+        "identifiers": [f"huawei_solar_modbus{identity_suffix}"],
+        "name": f"Huawei Solar Inverter {instance_id}" if instance_id else "Huawei Solar Inverter",
         "model": "SUN2000",
         "manufacturer": "Huawei",
     }
 
     sensors = _load_numeric_sensors()
-    count = await _publish_sensor_configs(client, base_topic, sensors, device_config)
+    count = await _publish_sensor_configs(client, base_topic, sensors, device_config, instance_id)
 
     text_sensors = _load_text_sensors()
-    text_count = await _publish_sensor_configs(client, base_topic, text_sensors, device_config)
+    text_count = await _publish_sensor_configs(client, base_topic, text_sensors, device_config, instance_id)
 
-    await _publish_status_sensor(client, base_topic, device_config)
+    await _publish_status_sensor(client, base_topic, device_config, instance_id)
     logger.info(f"✅ Discovery complete: {count + text_count + 1} entities")
 
 
-async def _publish_status_sensor(client: mqtt.Client, base_topic: str, device_config: dict[str, Any]) -> None:
+async def _publish_status_sensor(
+    client: mqtt.Client,
+    base_topic: str,
+    device_config: dict[str, Any],
+    instance_id: str = "",
+) -> None:
     """Publish Binary Sensor for connectivity status."""
+    identity_suffix = f"_{instance_id}" if instance_id else ""
+    node_id = f"huawei_solar{identity_suffix}"
     config = {
         "name": "Huawei Solar Status",
-        "unique_id": "huawei_solar_status",
+        "unique_id": f"huawei_solar{identity_suffix}_status",
         "state_topic": f"{base_topic}/status",
         "payload_on": "online",
         "payload_off": "offline",
@@ -241,7 +257,7 @@ async def _publish_status_sensor(client: mqtt.Client, base_topic: str, device_co
         "device": device_config,
     }
     result = client.publish(
-        "homeassistant/binary_sensor/huawei_solar/status/config",
+        f"homeassistant/binary_sensor/{node_id}/status/config",
         json.dumps(config),
         qos=1,
         retain=True,

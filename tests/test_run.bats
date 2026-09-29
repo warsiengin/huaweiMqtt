@@ -27,6 +27,7 @@ setup() {
         "mqtt_user") echo "" ;;
         "mqtt_password") echo "" ;;
         "mqtt_topic") echo "huawei-solar" ;;
+        "instance_id") echo "" ;;
         "log_level") echo "INFO" ;;
         "status_timeout") echo "180" ;;
         "poll_interval") echo "30" ;;
@@ -36,7 +37,7 @@ setup() {
 
     bashio::config.has_value() {
         case "$1" in
-        "modbus_host" | "modbus_port" | "modbus_auto_detect_slave_id" | "slave_id" | "mqtt_topic" | "log_level" | "status_timeout" | "poll_interval")
+        "modbus_host" | "modbus_port" | "modbus_auto_detect_slave_id" | "slave_id" | "mqtt_topic" | "instance_id" | "log_level" | "status_timeout" | "poll_interval")
             return 0
             ;;
         *)
@@ -96,6 +97,7 @@ teardown() {
     unset HUAWEI_MQTT_USER
     unset HUAWEI_MQTT_PASSWORD
     unset HUAWEI_MQTT_TOPIC
+    unset HUAWEI_INSTANCE_ID
     unset HUAWEI_MODBUS_AUTO_DETECT_SLAVE_ID
     unset HUAWEI_SLAVE_ID
     unset HUAWEI_STATUS_TIMEOUT
@@ -221,9 +223,43 @@ teardown() {
     [ "$HUAWEI_MODBUS_AUTO_DETECT_SLAVE_ID" = "true" ]
     [ "$HUAWEI_SLAVE_ID" = "1" ]
     [ "$HUAWEI_MQTT_TOPIC" = "huawei-solar" ]
+    [ "$HUAWEI_INSTANCE_ID" = "" ]
     [ "$HUAWEI_STATUS_TIMEOUT" = "180" ]
     [ "$HUAWEI_POLL_INTERVAL" = "30" ]
     [ "$HUAWEI_LOG_LEVEL" = "INFO" ]
+}
+
+@test "Instance ID is exported from add-on configuration" {
+    bashio::config() {
+        case "$1" in
+        instance_id) echo 'inverter_east' ;;
+        "modbus_host") echo "192.168.1.100" ;;
+        "modbus_port") echo "502" ;;
+        "modbus_auto_detect_slave_id") echo "true" ;;
+        "slave_id") echo "1" ;;
+        "mqtt_topic") echo "huawei-solar" ;;
+        "log_level") echo "INFO" ;;
+        "status_timeout") echo "180" ;;
+        "poll_interval") echo "30" ;;
+        *) echo "" ;;
+        esac
+    }
+    export -f bashio::config
+
+    source huawei_solar_modbus_mqtt/run.sh >/dev/null 2>&1
+
+    [ "$HUAWEI_INSTANCE_ID" = "inverter_east" ]
+}
+
+@test "MQTT topic fallback matches the add-on default" {
+    bashio::config.has_value() {
+        [ "$1" != "mqtt_topic" ]
+    }
+    export -f bashio::config.has_value
+
+    source huawei_solar_modbus_mqtt/run.sh >/dev/null 2>&1
+
+    [ "$HUAWEI_MQTT_TOPIC" = "huaweiInverter_1" ]
 }
 
 @test "Slave ID auto detect enabled" {

@@ -222,6 +222,15 @@ class TestSensorConfig:
         assert config["state_topic"] == "test/topic"
         assert "{{ value_json.test_key }}" in config["value_template"]
 
+    def test_sensor_config_includes_instance_in_unique_id(self):
+        config = _build_sensor_config(
+            {"name": "Test Sensor", "key": "test_key"},
+            "test/topic",
+            {"identifiers": ["inverter_device"]},
+            "inverter_east",
+        )
+        assert config["unique_id"] == "huawei_solar_inverter_east_test_key"
+
     def test_sensor_config_with_unit_and_device_class(self):
         device_config = {"identifiers": ["test_device"]}
         config = _build_sensor_config(
@@ -353,7 +362,54 @@ class TestDiscovery:
         with patch("bridge.mqtt_client._load_numeric_sensors", return_value=[{"name": "Test", "key": "test"}]):
             with patch("bridge.mqtt_client._load_text_sensors", return_value=[]):
                 await publish_discovery_configs("test/topic")
-                assert mock_mqtt_client.publish.call_count >= 2
+                published = mock_mqtt_client.publish.call_args_list
+                assert [call.args[0] for call in published] == [
+                    "homeassistant/sensor/huawei_solar/test/config",
+                    "homeassistant/binary_sensor/huawei_solar/status/config",
+                ]
+                sensor_config = json.loads(published[0].args[1])
+                assert sensor_config["unique_id"] == "huawei_solar_test"
+                assert sensor_config["device"]["identifiers"] == ["huawei_solar_modbus"]
+                status_config = json.loads(published[1].args[1])
+                assert status_config["unique_id"] == "huawei_solar_status"
+                assert status_config["device"]["identifiers"] == ["huawei_solar_modbus"]
+
+    @pytest.mark.asyncio
+    async def test_publish_discovery_configs_isolates_instance(self, mock_mqtt_client, mqtt_env_vars):
+        import bridge.mqtt_client as mqtt_module
+
+        mqtt_module._mqtt_client = mock_mqtt_client
+        mqtt_module._is_connected = True
+
+        with patch("bridge.mqtt_client._load_numeric_sensors", return_value=[{"name": "Test", "key": "test"}]):
+            with patch("bridge.mqtt_client._load_text_sensors", return_value=[]):
+                await publish_discovery_configs("inverter-east", "inverter_east")
+                east_published = mock_mqtt_client.publish.call_args_list
+                mock_mqtt_client.publish.reset_mock()
+                await publish_discovery_configs("inverter-west", "inverter_west")
+
+        west_published = mock_mqtt_client.publish.call_args_list
+        assert [call.args[0] for call in east_published] == [
+            "homeassistant/sensor/huawei_solar_inverter_east/test/config",
+            "homeassistant/binary_sensor/huawei_solar_inverter_east/status/config",
+        ]
+        assert [call.args[0] for call in west_published] == [
+            "homeassistant/sensor/huawei_solar_inverter_west/test/config",
+            "homeassistant/binary_sensor/huawei_solar_inverter_west/status/config",
+        ]
+        sensor_config = json.loads(east_published[0].args[1])
+        assert sensor_config["unique_id"] == "huawei_solar_inverter_east_test"
+        assert sensor_config["state_topic"] == "inverter-east"
+        assert sensor_config["availability_topic"] == "inverter-east/status"
+        assert sensor_config["device"]["identifiers"] == ["huawei_solar_modbus_inverter_east"]
+
+        status_config = json.loads(east_published[1].args[1])
+        assert status_config["unique_id"] == "huawei_solar_inverter_east_status"
+        assert status_config["state_topic"] == "inverter-east/status"
+        assert status_config["device"]["identifiers"] == ["huawei_solar_modbus_inverter_east"]
+        west_sensor_config = json.loads(west_published[0].args[1])
+        assert west_sensor_config["unique_id"] == "huawei_solar_inverter_west_test"
+        assert west_sensor_config["device"]["identifiers"] == ["huawei_solar_modbus_inverter_west"]
 
     @pytest.mark.asyncio
     async def test_publish_discovery_skips_when_not_connected(self, mock_mqtt_client):

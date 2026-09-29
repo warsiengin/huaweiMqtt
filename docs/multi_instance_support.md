@@ -1,108 +1,65 @@
 # Supporting Multiple huABus Instances
 
-## Purpose
+## Overview
 
-This guide explains what must change if multiple huABus installations should publish data as separate Home Assistant devices. The recommendations are not implemented by this document; it maps the current behavior to the files that would need updates.
+Multiple instances can monitor separate inverters and publish them as separate Home Assistant devices. The implementation uses both a per-instance MQTT state topic (`mqtt_topic`) and an optional stable discovery identifier (`instance_id`). Changing only `mqtt_topic` is not sufficient: Home Assistant discovery topics and entity/device identifiers must also be unique.
 
-This is useful when monitoring multiple inverters. It does **not** make it safe to open multiple simultaneous Modbus TCP connections to the same inverter. The project README documents Huawei's single-active-Modbus-connection limitation.
+This does **not** make it safe to open multiple simultaneous Modbus TCP connections to the same inverter. Use separate inverter endpoints unless a supported proxy/shared-connection arrangement is in place.
 
-## Current behavior
+Line numbers below are current at the time of this update and may shift with later edits.
 
-The add-on already has a configurable `mqtt_topic`. The startup script exports it as `HUAWEI_MQTT_TOPIC`, and data and availability messages use that topic. Separate instances can therefore have separate data topics today, for example `inverter-east` and `inverter-west`.
+## Configure each instance
 
-However, MQTT discovery identity is currently shared by all instances:
+In `huawei_solar_modbus_mqtt/config.yaml:25-55`, `instance_id` is an optional add-on setting. It defaults to an empty string to preserve the original single-instance discovery identities. For every additional instance, set a stable, distinct ID using lowercase letters, digits, `_` or `-` (maximum 32 characters). The ID is read/exported by `run.sh:97-101`, loaded from `/data/options.json` or `HUAWEI_INSTANCE_ID` by `bridge/config_manager.py:44-97`, exposed by `ConfigManager.instance_id` at lines 190-193, and validated at lines 233-281. `main()` calls `config.validate()` at `bridge/main.py:808-823` and exits before startup if any setting is invalid.
 
-- Sensor discovery topics are hard-coded as `homeassistant/sensor/huawei_solar/{key}/config`.
-- Sensor unique IDs are hard-coded as `huawei_solar_{key}`.
-- The device identifier is hard-coded as `huawei_solar_modbus`.
-- The status entity has a fixed discovery topic and unique ID.
+Set a different `mqtt_topic` and `instance_id` for each running instance. For example:
 
-Because Home Assistant uses discovery topics, unique IDs, and device identifiers to track entities and devices, changing only `mqtt_topic` does not isolate multiple instances. Discovery messages can overwrite one another or cause entities to be associated with the same device.
+| Instance | `instance_id` | `mqtt_topic` | Modbus host |
+| --- | --- | --- | --- |
+| Inverter 1 | `inverter_1` | `huaweiInverter_1` | `192.168.1.120` |
+| Inverter 2 | `inverter_2` | `huaweiInverter_2` | `192.168.1.121` |
 
-## Recommended changes and locations
+The current add-on defaults are `mqtt_topic: "huaweiInverter_1"` and `instance_id: ""`. Saved Home Assistant options override add-on defaults. `ConfigManager` reads `/data/options.json` when it exists and only uses environment variables when it does not; it does not merge both sources. The startup script exports the same topic as `HUAWEI_MQTT_TOPIC` for MQTT Last Will and disconnect handling.
 
-### 1. Add a stable per-instance ID
+## What the implementation isolates
 
-**Files:**
+`initialize_bridge()` passes `config.mqtt_topic` and `config.instance_id` to `publish_discovery_configs()` at `huawei_solar_modbus_mqtt/bridge/main.py:703-726`.
 
-- `huawei_solar_modbus_mqtt/config.yaml`
-- `huawei_solar_modbus_mqtt/bridge/config_manager.py`
-- `huawei_solar_modbus_mqtt/run.sh`
+The discovery publisher in `bridge/mqtt_client.py:147-263` scopes all Home Assistant identity fields:
 
-Add an option such as `instance_id` to both the add-on `options` and `schema` in `config.yaml`. Read it in `run.sh` and export it, for example as `HUAWEI_INSTANCE_ID`. Add a corresponding `ConfigManager` property and environment-variable fallback in `config_manager.py` if configuration is read outside the add-on startup script.
+- Sensor discovery topic: `homeassistant/sensor/{node_id}/{sensor_key}/config` (line 205).
+- Sensor `unique_id`: `huawei_solar_{instance_id}_{sensor_key}` when an ID is set (line 157).
+- Device identifier: `huawei_solar_modbus_{instance_id}` (line 223).
+- Status discovery topic and unique ID use the same instance node/suffix (lines 239-258).
+- Sensor state and availability topics continue to use `mqtt_topic` and `{mqtt_topic}/status`.
 
-Each running copy must have a distinct, stable ID, such as `inverter_east` or `inverter_west`. Validate the allowed characters and document that changing this ID later changes the entity/device identity.
+When `instance_id` is empty, the generated discovery topics, unique IDs, and device identifier preserve the existing single-instance values. For example, `instance_id: inverter_2` and `sensor_key: power_active` produce `homeassistant/sensor/huawei_solar_inverter_2/power_active/config` and unique ID `huawei_solar_inverter_2_power_active`.
 
-Continue to give each instance a distinct `mqtt_topic`; this separates the state and availability messages. For example:
+## Validation and tests
 
-| Instance | Instance ID | MQTT topic |
-| --- | --- | --- |
-| East inverter | `inverter_east` | `inverter-east` |
-| West inverter | `inverter_west` | `inverter-west` |
+Regression tests cover options-file/environment loading and instance-ID validation in `tests/test_config_manager.py`; legacy and per-instance discovery topics/payloads in `tests/test_mqtt_client.py`; startup pass-through and rejection of invalid configuration in `tests/test_main.py`; and shell export in `tests/test_run.bats`.
 
-### 2. Make discovery topics and entity IDs instance-specific
+The Python test suite can be run with `uv run pytest`. The BATS startup-script tests require `bats` to be installed and run with `bats tests/test_run.bats`.
 
-**File:** `huawei_solar_modbus_mqtt/bridge/mqtt_client.py`
+## Deployment and migration notes
 
-Thread the instance ID into discovery publishing, then incorporate it into:
+- Use a distinct stable `instance_id`, `mqtt_topic`, and Modbus host for each instance.
+- Changing an existing instance from an empty ID or renaming its ID changes Home Assistant discovery identity. Clear the old retained discovery config messages by publishing empty retained payloads to the previous discovery topics; back up entity customizations first.
+- A distinct `instance_id` does not allow two Supervisor add-ons with the same slug. Installing two separate entries through Supervisor requires separate add-on definitions with distinct slugs. Multiple independently configured containers do not have that packaging requirement.
+- The current add-on metadata uses `name: huawei_inverter_1` and `slug: huawei_inverter_1` (`config.yaml:1-3`).
+- Never run separate instances that connect directly to the same inverter unless a supported connection-sharing setup is used.
 
-- Sensor discovery topic in `_publish_sensor_configs()` (currently uses the fixed `homeassistant/sensor/huawei_solar/...` prefix).
-- Sensor `unique_id` in `_build_sensor_config()` (currently `huawei_solar_{sensor['key']}`).
-- The device `identifiers` list in `publish_discovery_configs()` (currently `huawei_solar_modbus`).
-- Status discovery topic and `unique_id` in `_publish_status_sensor()`.
-
-Every entity from one instance must use the same instance-specific device identifier, and entities from different instances must have distinct unique IDs. Preserve the existing default identity for a single installation where practical, to avoid needlessly renaming current entities.
-
-### 3. Pass the identity through startup
-
-**Files:**
-
-- `huawei_solar_modbus_mqtt/bridge/main.py`
-- `huawei_solar_modbus_mqtt/bridge/mqtt_client.py`
-
-`initialize_bridge()` in `main.py` currently calls `publish_discovery_configs(config.mqtt_topic)`. Update that call and the discovery helper signatures to pass the instance ID as well as the state topic. Alternatively, pass a small immutable identity/config object rather than adding unrelated positional arguments.
-
-The MQTT connection and retained Last Will status topic in `mqtt_client.py` already use `HUAWEI_MQTT_TOPIC`. Ensure the configured topic remains consistent with the topic passed to discovery and publishing.
-
-### 4. Make duplicate Home Assistant add-ons installable
-
-**File:** `huawei_solar_modbus_mqtt/config.yaml`
-
-Home Assistant identifies an add-on by its `slug`; this repository currently defines one fixed slug, `huawei_solar_modbus_mqtt`. If the goal is to install multiple copies from the add-on store, distinct add-on definitions with distinct slugs and names are needed (for example, separately packaged variants or maintained forks). The per-instance ID solves MQTT/Home Assistant identity collisions; it does not by itself create another installable add-on entry.
-
-If using multiple separately packaged copies, keep their configuration schema and supported versions aligned. If instead running multiple containers outside Supervisor, configure each container's environment/options independently.
-
-### 5. Test instance isolation and configuration
-
-**Tests:**
-
-- `tests/test_mqtt_client.py`: verify two instance IDs create different discovery topics, entity unique IDs, device identifiers, and status discovery identities. Also verify the default identity remains compatible if preserving it.
-- `tests/test_config_manager.py`: verify instance ID loading, defaulting, and validation.
-- `tests/test_run.bats`: if startup-script behavior is covered there, verify that the configured ID is exported to the process environment.
-- `tests/test_main.py`: verify that `initialize_bridge()` passes the configured instance identity into discovery publishing.
-
-Prefer assertions against the generated discovery payloads and topics, not just assertions that helper functions were called.
-
-## Retained discovery migration
-
-Changing discovery topics or unique IDs can leave old retained discovery messages and old entities behind in Home Assistant. Before deploying an identity scheme to an existing installation, plan to remove the previous retained discovery configs (or publish the appropriate empty retained payloads to the old discovery topics), then allow Home Assistant to recreate entities with the new IDs. Back up or record entity customizations before doing this migration.
-
-## Safety and operational notes
-
-- Use a different `instance_id` and `mqtt_topic` for every instance.
-- Use separate Modbus host addresses when monitoring separate inverters.
-- Do not run two instances that both connect directly to the same inverter unless a Modbus proxy or another supported connection-sharing arrangement is in place.
-- A separate add-on slug is a packaging/installability requirement; it is not a substitute for unique MQTT discovery identity.
-
-## Current code locations at a glance
+## Exact implementation locations
 
 | Concern | Current location |
 | --- | --- |
-| Add-on options, schema, and slug | `huawei_solar_modbus_mqtt/config.yaml` |
-| Add-on options exported as environment variables | `huawei_solar_modbus_mqtt/run.sh` |
-| Environment-backed config properties | `huawei_solar_modbus_mqtt/bridge/config_manager.py` |
-| Startup discovery call | `huawei_solar_modbus_mqtt/bridge/main.py` (`initialize_bridge`) |
-| MQTT state and Last Will topics | `huawei_solar_modbus_mqtt/bridge/mqtt_client.py` (`_get_mqtt_client`, `publish_data`, `publish_status`) |
-| Discovery topics and identity fields | `huawei_solar_modbus_mqtt/bridge/mqtt_client.py` (`_build_sensor_config`, `_publish_sensor_configs`, `publish_discovery_configs`, `_publish_status_sensor`) |
-| MQTT discovery behavior tests | `tests/test_mqtt_client.py` |
-| Configuration tests | `tests/test_config_manager.py` |
+| Add-on topic/instance options and schema | `huawei_solar_modbus_mqtt/config.yaml:25-55` |
+| Add-on environment exports | `huawei_solar_modbus_mqtt/run.sh:97-101` |
+| Config file/environment loading and validation | `huawei_solar_modbus_mqtt/bridge/config_manager.py:44-97`, `:186-193`, `:233-281` |
+| Startup discovery handoff | `huawei_solar_modbus_mqtt/bridge/main.py:703-726` |
+| Startup config validation | `huawei_solar_modbus_mqtt/bridge/main.py:808-823` |
+| Discovery topics and identity payloads | `huawei_solar_modbus_mqtt/bridge/mqtt_client.py:147-263` |
+| Config and validation tests | `tests/test_config_manager.py:28-110`, `:180-260`, `:301-345`, `:445-539` |
+| Discovery tests | `tests/test_mqtt_client.py:205-255`, `:352-424` |
+| Startup validation and discovery call-site tests | `tests/test_main.py:88-120` |
+| Shell export tests | `tests/test_run.bats:232-263` |

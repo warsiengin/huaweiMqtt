@@ -94,8 +94,11 @@ else
     export HUAWEI_MQTT_PASSWORD=""
 fi
 
-HUAWEI_MQTT_TOPIC=$(get_required_config 'mqtt_topic' 'huawei-solar')
+HUAWEI_MQTT_TOPIC=$(get_required_config 'mqtt_topic' 'huaweiInverter_1')
 export HUAWEI_MQTT_TOPIC
+
+HUAWEI_INSTANCE_ID=$(get_required_config 'instance_id')
+export HUAWEI_INSTANCE_ID
 
 # Advanced Configuration
 HUAWEI_STATUS_TIMEOUT=$(get_required_config 'status_timeout' '180')
