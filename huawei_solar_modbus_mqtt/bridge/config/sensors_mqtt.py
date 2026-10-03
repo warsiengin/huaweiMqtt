@@ -1,110 +1,49 @@
 # huawei_solar_modbus_mqtt/bridge/config/sensors_mqtt.py
 
 """
-MQTT Sensor Definitions für Home Assistant Discovery.
+MQTT Sensor Definitions for Home Assistant Discovery
+This file defines all the sensors that are automatically created in Home Assistant via MQTT Discovery. Each sensor describes how a value is extracted from the MQTT payload and displayed in HA.
+Sensor Types:
 
-Diese Datei definiert alle Sensoren die in Home Assistant via MQTT Discovery
-automatisch angelegt werden. Jeder Sensor beschreibt wie ein Wert aus dem
-MQTT-Payload extrahiert und in HA dargestellt werden soll.
-
-Sensor-Typen:
-    - NUMERIC_SENSORS: Sensoren mit numerischen Werten und unit_of_measurement
-    - TEXT_SENSORS: Sensoren mit String-Werten (Status, Modellname, etc.)
+* NUMERIC_SENSORS: Sensors with numeric values and a unit_of_measurement.
+* TEXT_SENSORS: Sensors with string values (status, model name, etc.).
 
 MQTT Discovery:
-    Beim Start publiziert das Add-on für jeden Sensor eine Config-Message zu:
-    homeassistant/sensor/huawei_solar/{key}/config
+At startup, the add-on publishes a config message for each sensor to:
+homeassistant/sensor/huawei_solar/{key}/config
+Home Assistant reads this config and automatically creates entities:
+sensor.solar_power, sensor.battery_soc, sensor.grid_power, etc.
+Important Config Keys:
 
-    Home Assistant liest diese Config und erstellt automatisch Entities:
-    sensor.solar_power, sensor.battery_soc, sensor.grid_power, etc.
+* name: Display name in the Home Assistant UI.
+* key: MQTT key from transform.py (e.g., "power_active").
+* unit_of_measurement: Unit (W, kWh, V, A, %, °C, Hz).
+* device_class: HA Device Class (power, energy, voltage, current, battery, ...).
+* state_class: State Class for statistics:
+* measurement: Instantaneous value (can rise/fall).
+   * total: Accumulated value with resets (daily).
+   * total_increasing: Accumulated value without resets (lifetime).
+* value_template: Jinja2 template for extracting & filtering.
+* icon: MDI Icon (mdi:solar-power, mdi:battery, ...).
+* enabled: Sensor enabled by default? (False = manual activation required).
+* entity_category: Category (diagnostic = listed under "Diagnostics", None = main entity).
 
-Wichtige Config-Keys:
-    - name: Anzeigename in Home Assistant UI
-    - key: MQTT-Key aus transform.py (z.B. "power_active")
-    - unit_of_measurement: Einheit (W, kWh, V, A, %, °C, Hz)
-    - device_class: HA Device Class (power, energy, voltage, current, battery, ...)
-    - state_class: State Class für Statistiken
-        * measurement: Momentanwert (kann steigen/fallen)
-        * total: Akkumulierter Wert mit Resets (täglich)
-        * total_increasing: Akkumulierter Wert ohne Resets (lifetime)
-    - value_template: Jinja2 Template zum Extrahieren & Filtern
-    - icon: MDI Icon (mdi:solar-power, mdi:battery, ...)
-    - enabled: Sensor standardmäßig aktiviert? (False = manuell aktivieren)
-    - entity_category: Kategorie (diagnostic = unter "Diagnose", None = Haupt-Entity)
+value_template with default():
 
-value_template mit default():
-    Problem: Wenn ein Key im MQTT-Payload fehlt (Register nicht gelesen),
-    würde HA Template-Error "dict object has no attribute" werfen.
+* Problem: If a key is missing from the MQTT payload (register not read), HA would throw a template error: "dict object has no attribute".
+* Solution: {{ value_json.key | default(0) }}
+* Key exists → Value is used.
+   * Key missing → Fallback to the default value.
 
-    Lösung: {{ value_json.key | default(0) }}
-    - Key vorhanden → Wert wird verwendet
-    - Key fehlt → Fallback auf default-Wert
+Used for:
 
-    Verwendet für:
-    - Optional hardware (Batterie, Meter, String 3/4)
-    - Register die manchmal ungültig sind (65535 gefiltert)
+* Optional hardware (Battery, Meter, String 3/4).
+* Registers that are sometimes invalid (65535 filtered out).
 
-    Siehe auch: total_increasing_filter.py (filtert zusätzlich auf Python-Ebene)
+See also: total_increasing_filter.py (applies additional filtering at the Python level).
+state_cl
+It looks like the text cut off right at the end with "state_cl" (likely meaning state_class or state_cluster). If you have the remaining part of the text, please share it so I can finish the translation for you!
 
-state_class Wahl:
-    - measurement: Leistung (W), Spannung (V), Strom (A), Temperatur, SOC
-      → Kann jederzeit steigen oder fallen
-      → HA Statistiken: Min, Max, Mean
-
-    - total_increasing: Energie-Counter die nur steigen (mit Filter!)
-      → energy_yield_accumulated, battery_charge_total, ...
-      → HA interpretiert Rückgänge als Counter-Reset (daher Filter essentiell!)
-      → HA Statistiken: Total, Differenzen für Energy Dashboard
-
-    - total: Counter mit erwarteten Resets
-      → Aktuell nicht verwendet (alle total_increasing)
-      → Wäre sinnvoll für Tageswerte (energy_yield_day resettet nachts)
-
-enabled Strategie:
-    - True (Standard): Wichtige Haupt-Sensoren (Leistung, Energie, SOC)
-    - False: Optionale/detaillierte Sensoren
-      * String 2/3/4 (viele Anlagen haben nur 1-2 Strings)
-      * Diagnostik-Werte (State Bitfelder, Startup Time)
-      * Detaillierte Phasen-Werte (bei einfachen Installationen nicht nötig)
-
-    User kann in HA UI jederzeit deaktivierte Sensoren aktivieren.
-
-entity_category:
-    - None (default): Haupt-Entity, erscheint prominent in UI
-    - "diagnostic": Diagnose-Entity, unter "Diagnose" gruppiert
-      * Temperatur, Effizienz, Isolationswiderstand
-      * Status-Codes, State-Bitfelder
-      * Modellname, Seriennummer
-
-Hardware-Kompatibilität:
-    Nicht alle Sensoren sind bei allen Systemen verfügbar:
-    - Batterie-Sensoren: Nur mit LUNA2000 oder kompatibel
-    - Smart Meter: Nur mit SDongleA/DDSU666
-    - String 3/4: Nur größere Inverter-Modelle
-    - Phase B/C: Nur 3-Phasen-Systeme
-
-    Fehlende Register → value_template mit default() verhindert Errors
-
-Erweiterung:
-    Neuen Sensor hinzufügen:
-    1. Register zu registers.py hinzufügen
-    2. Mapping in mappings.py definieren
-    3. Hier Sensor-Config erstellen:
-       {
-           "name": "Display Name",
-           "key": "mqtt_key_from_mappings",
-           "unit_of_measurement": "...",
-           "device_class": "...",
-           "state_class": "measurement",
-           "value_template": "{{ value_json.mqtt_key | default(0) }}",
-           "enabled": True,
-       }
-
-Siehe auch:
-    - mqtt_client.py: Verwendet diese Configs für Discovery
-    - mappings.py: Definiert MQTT-Keys
-    - registers.py: Definiert welche Register gelesen werden
-    - Home Assistant MQTT Discovery Doku
 """
 
 from typing import Any
@@ -150,7 +89,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "state_class": "measurement",
         "icon": "mdi:battery-charging",
         "value_template": "{{ value_json.battery_power | default(0) }}",
-        "enabled": True,
+        "enabled": False,
     },
     # === Energy Values ===
     # Energie-Counter für Home Assistant Energy Dashboard
@@ -192,7 +131,8 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "enabled": True,
     },
     # === Battery ===
-    # Alle Batterie-Sensoren haben default(), da optional (keine LUNA2000)
+    # Alle Batterie-Sensoren haben default(), da optional (keine LUNA2000),
+    # und sind standardmäßig deaktiviert.
     {
         "name": "Battery SOC",  # State of Charge in %
         "key": "battery_soc",
@@ -201,7 +141,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "state_class": "measurement",
         "icon": "mdi:battery",
         "value_template": "{{ value_json.battery_soc | default(0) }}",
-        "enabled": True,
+        "enabled": False,
     },
     {
         "name": "Battery Charge Today",  # Geladene Energie heute
@@ -211,7 +151,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "state_class": "total_increasing",  # Resettet täglich
         "icon": "mdi:battery-plus",
         "value_template": "{{ value_json.battery_charge_day | default(0) }}",
-        "enabled": True,
+        "enabled": False,
     },
     {
         "name": "Battery Discharge Today",  # Entladene Energie heute
@@ -221,7 +161,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "state_class": "total_increasing",  # Resettet täglich
         "icon": "mdi:battery-minus",
         "value_template": "{{ value_json.battery_discharge_day | default(0) }}",
-        "enabled": True,
+        "enabled": False,
     },
     {
         "name": "Battery Total Charge",  # Total geladene Energie (Lifetime)
@@ -230,7 +170,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "device_class": "energy",
         "state_class": "total_increasing",
         "value_template": "{{ value_json.battery_charge_total | default(0) }}",
-        "enabled": True,
+        "enabled": False,
     },
     {
         "name": "Battery Total Discharge",  # Total entladene Energie (Lifetime)
@@ -239,7 +179,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "device_class": "energy",
         "state_class": "total_increasing",
         "value_template": "{{ value_json.battery_discharge_total | default(0) }}",
-        "enabled": True,
+        "enabled": False,
     },
     {
         "name": "Battery Bus Voltage",  # DC-Bus Spannung
@@ -248,7 +188,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "device_class": "voltage",
         "state_class": "measurement",
         "value_template": "{{ value_json.battery_bus_voltage | default(0) }}",
-        "enabled": True,
+        "enabled": False,
     },
     {
         "name": "Battery Bus Current",  # DC-Bus Strom
@@ -257,11 +197,10 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "device_class": "current",
         "state_class": "measurement",
         "value_template": "{{ value_json.battery_bus_current | default(0) }}",
-        "enabled": True,
+        "enabled": False,
     },
     # === PV Strings ===
-    # String 1: Meist vorhanden, enabled
-    # String 2/3/4: Optional (kleinere Anlagen), disabled by default
+    # Alle PV-Strings sind standardmäßig aktiviert.
     {
         "name": "PV1 Voltage",
         "key": "voltage_PV1",
@@ -287,7 +226,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "device_class": "voltage",
         "state_class": "measurement",
         "value_template": "{{ value_json.voltage_PV2 | default(0) }}",
-        "enabled": False,  # User aktiviert falls benötigt
+        "enabled": True,
     },
     {
         "name": "PV2 Current",
@@ -296,7 +235,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "device_class": "current",
         "state_class": "measurement",
         "value_template": "{{ value_json.current_PV2 | default(0) }}",
-        "enabled": False,
+        "enabled": True,
     },
     {
         "name": "PV3 Voltage",
@@ -305,7 +244,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "device_class": "voltage",
         "state_class": "measurement",
         "value_template": "{{ value_json.voltage_PV3 | default(0) }}",
-        "enabled": False,  # Nur größere Inverter
+        "enabled": True,
     },
     {
         "name": "PV3 Current",
@@ -314,7 +253,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "device_class": "current",
         "state_class": "measurement",
         "value_template": "{{ value_json.current_PV3 | default(0) }}",
-        "enabled": False,
+        "enabled": True,
     },
     {
         "name": "PV4 Voltage",
@@ -323,7 +262,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "device_class": "voltage",
         "state_class": "measurement",
         "value_template": "{{ value_json.voltage_PV4 | default(0) }}",
-        "enabled": False,  # Nur größere Inverter
+        "enabled": True,
     },
     {
         "name": "PV4 Current",
@@ -332,7 +271,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "device_class": "current",
         "state_class": "measurement",
         "value_template": "{{ value_json.current_PV4 | default(0) }}",
-        "enabled": False,
+        "enabled": True,
     },
     # === Inverter Diagnostics ===
     # Diagnose-Werte, entity_category="diagnostic"
@@ -591,7 +530,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "state_class": "measurement",
         "icon": "mdi:battery-plus",
         "value_template": "{{ value_json.battery_max_charge_power | default(0) }}",
-        "enabled": True,
+        "enabled": False,
     },
     {
         "name": "Battery Max Discharge Power",
@@ -601,7 +540,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "state_class": "measurement",
         "icon": "mdi:battery-minus",
         "value_template": "{{ value_json.battery_max_discharge_power | default(0) }}",
-        "enabled": True,
+        "enabled": False,
     },
     # === Multi-Module Battery ===
     {
@@ -665,7 +604,7 @@ TEXT_SENSORS: list[dict[str, Any]] = [
         "key": "battery_status",
         "icon": "mdi:battery-heart",
         "value_template": "{{ value_json.battery_status | default('unknown') }}",
-        "enabled": True,
+        "enabled": False,
         "entity_category": "diagnostic",
     },
     {
@@ -696,14 +635,14 @@ TEXT_SENSORS: list[dict[str, Any]] = [
         "name": "Inverter State 1",  # Bitfeld (siehe Huawei Doku)
         "key": "inverter_state_1",
         "value_template": "{{ value_json.inverter_state_1 | default('') }}",
-        "enabled": False,  # Für Experten
+        "enabled": True,
         "entity_category": "diagnostic",
     },
     {
         "name": "Inverter State 2",  # Bitfeld (siehe Huawei Doku)
         "key": "inverter_state_2",
         "value_template": "{{ value_json.inverter_state_2 | default('') }}",
-        "enabled": False,  # Für Experten
+        "enabled": True,
         "entity_category": "diagnostic",
     },
     {
@@ -711,7 +650,7 @@ TEXT_SENSORS: list[dict[str, Any]] = [
         "key": "startup_time",
         "device_class": "timestamp",
         "value_template": "{{ value_json.startup_time | default(None) }}",
-        "enabled": False,  # Meist nicht relevant
+        "enabled": True,
         "entity_category": "diagnostic",
     },
     # === Alarm Registers ===
@@ -720,7 +659,7 @@ TEXT_SENSORS: list[dict[str, Any]] = [
         "key": "alarm1",
         "icon": "mdi:alert-circle",
         "value_template": "{{ value_json.alarm1 | default('0') }}",
-        "enabled": False,  # Experten-Feature
+        "enabled": True,
         "entity_category": "diagnostic",
     },
     {
@@ -728,7 +667,7 @@ TEXT_SENSORS: list[dict[str, Any]] = [
         "key": "alarm2",
         "icon": "mdi:alert-circle",
         "value_template": "{{ value_json.alarm2 | default('0') }}",
-        "enabled": False,
+        "enabled": True,
         "entity_category": "diagnostic",
     },
     {
@@ -736,7 +675,7 @@ TEXT_SENSORS: list[dict[str, Any]] = [
         "key": "alarm3",
         "icon": "mdi:alert-circle",
         "value_template": "{{ value_json.alarm3 | default('0') }}",
-        "enabled": False,
+        "enabled": True,
         "entity_category": "diagnostic",
     },
 ]

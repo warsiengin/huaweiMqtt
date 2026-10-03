@@ -250,6 +250,26 @@ class TestSensorConfig:
         )
         assert config["enabled_by_default"] is False
 
+    def test_requested_sensor_default_states(self):
+        sensors = _load_numeric_sensors() + _load_text_sensors()
+        enabled_names = {
+            "PV2 Voltage",
+            "PV2 Current",
+            "PV3 Voltage",
+            "PV3 Current",
+            "PV4 Voltage",
+            "PV4 Current",
+            "Inverter State 1",
+            "Inverter State 2",
+            "Inverter Startup Time",
+            "Alarm 1",
+            "Alarm 2",
+            "Alarm 3",
+        }
+
+        assert enabled_names <= {sensor["name"] for sensor in sensors if sensor.get("enabled", True)}
+        assert all(sensor.get("enabled", True) is False for sensor in sensors if sensor["name"].startswith("Battery"))
+
 
 # ---------------------------------------------------------------------------
 # TestPublishing
