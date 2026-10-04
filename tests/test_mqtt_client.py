@@ -270,6 +270,17 @@ class TestSensorConfig:
         assert enabled_names <= {sensor["name"] for sensor in sensors if sensor.get("enabled", True)}
         assert all(sensor.get("enabled", True) is False for sensor in sensors if sensor["name"].startswith("Battery"))
 
+    def test_grid_and_meter_sensors_disabled_by_default(self):
+        sensors = _load_numeric_sensors() + _load_text_sensors()
+        grid_and_meter_sensors = [
+            sensor
+            for sensor in sensors
+            if sensor["name"].startswith(("Grid ", "Meter ")) or sensor["name"].startswith("Line Voltage ")
+        ]
+
+        assert grid_and_meter_sensors
+        assert all(sensor.get("enabled", True) is False for sensor in grid_and_meter_sensors)
+
 
 # ---------------------------------------------------------------------------
 # TestPublishing

@@ -40,7 +40,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "device_class": "power",
         "state_class": "measurement",
         "icon": "mdi:transmission-tower",
-        "enabled": True,
+        "enabled": False,
     },
     {
         "name": "Battery Power",  # Batterie-Leistung (pos=Laden, neg=Entladen)
@@ -80,7 +80,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "state_class": "total_increasing",
         "icon": "mdi:transmission-tower-export",
         "value_template": "{{ value_json.energy_grid_exported | default(0) }}",
-        "enabled": True,
+        "enabled": False,
     },
     {
         "name": "Grid Energy Imported",  # Total bezogene Energie
@@ -89,7 +89,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "device_class": "energy",
         "state_class": "total_increasing",
         "icon": "mdi:transmission-tower-import",
-        "enabled": True,
+        "enabled": False,
     },
     # === Battery ===
     # Alle Batterie-Sensoren haben default(), da optional (keine LUNA2000),
@@ -302,7 +302,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "device_class": "voltage",
         "state_class": "measurement",
         "value_template": "{{ value_json.voltage_grid_A | default(0) }}",
-        "enabled": True,
+        "enabled": False,
     },
     {
         "name": "Grid Voltage Phase B",  # Nur 3-Phasen
@@ -311,7 +311,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "device_class": "voltage",
         "state_class": "measurement",
         "value_template": "{{ value_json.voltage_grid_B | default(0) }}",
-        "enabled": True,
+        "enabled": False,
     },
     {
         "name": "Grid Voltage Phase C",  # Nur 3-Phasen
@@ -320,7 +320,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "device_class": "voltage",
         "state_class": "measurement",
         "value_template": "{{ value_json.voltage_grid_C | default(0) }}",
-        "enabled": True,
+        "enabled": False,
     },
     {
         "name": "Line Voltage A-B",  # Phase-zu-Phase (√3 × Phase-zu-Neutral)
@@ -329,7 +329,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "device_class": "voltage",
         "state_class": "measurement",
         "value_template": "{{ value_json.voltage_line_AB | default(0) }}",
-        "enabled": True,
+        "enabled": False,
     },
     {
         "name": "Line Voltage B-C",
@@ -338,7 +338,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "device_class": "voltage",
         "state_class": "measurement",
         "value_template": "{{ value_json.voltage_line_BC | default(0) }}",
-        "enabled": True,
+        "enabled": False,
     },
     {
         "name": "Line Voltage C-A",
@@ -347,7 +347,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "device_class": "voltage",
         "state_class": "measurement",
         "value_template": "{{ value_json.voltage_line_CA | default(0) }}",
-        "enabled": True,
+        "enabled": False,
     },
     {
         "name": "Grid Frequency",  # 50 Hz (EU) oder 60 Hz (US/JP)
@@ -356,7 +356,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "device_class": "frequency",
         "state_class": "measurement",
         "value_template": "{{ value_json.frequency_grid | default(50) }}",  # Default 50 Hz
-        "enabled": True,
+        "enabled": False,
     },
     # === Smart Meter Values ===
     # Alle optional (nur mit SDongleA/DDSU666)
@@ -367,7 +367,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "device_class": "reactive_power",
         "state_class": "measurement",
         "value_template": "{{ value_json.meter_reactive_power | default(0) }}",
-        "enabled": True,
+        "enabled": False,
     },
     {
         "name": "Meter Power Phase A",  # 3-Phasen Details vom Meter
@@ -377,7 +377,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "state_class": "measurement",
         "icon": "mdi:transmission-tower",
         "value_template": "{{ value_json.power_meter_A | default(0) }}",
-        "enabled": True,
+        "enabled": False,
     },
     {
         "name": "Meter Power Phase B",
@@ -387,7 +387,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "state_class": "measurement",
         "icon": "mdi:transmission-tower",
         "value_template": "{{ value_json.power_meter_B | default(0) }}",
-        "enabled": True,
+        "enabled": False,
     },
     {
         "name": "Meter Power Phase C",
@@ -397,7 +397,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "state_class": "measurement",
         "icon": "mdi:transmission-tower",
         "value_template": "{{ value_json.power_meter_C | default(0) }}",
-        "enabled": True,
+        "enabled": False,
     },
     {
         "name": "Meter Line Voltage A-B",  # Spannungen vom Meter
@@ -406,7 +406,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "device_class": "voltage",
         "state_class": "measurement",
         "value_template": "{{ value_json.voltage_meter_line_AB | default(0) }}",
-        "enabled": True,
+        "enabled": False,
     },
     {
         "name": "Meter Line Voltage B-C",
@@ -415,7 +415,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "device_class": "voltage",
         "state_class": "measurement",
         "value_template": "{{ value_json.voltage_meter_line_BC | default(0) }}",
-        "enabled": True,
+        "enabled": False,
     },
     {
         "name": "Meter Line Voltage C-A",
@@ -424,7 +424,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "device_class": "voltage",
         "state_class": "measurement",
         "value_template": "{{ value_json.voltage_meter_line_CA | default(0) }}",
-        "enabled": True,
+        "enabled": False,
     },
     {
         "name": "Meter Current Phase A",  # Ströme vom Meter
@@ -433,7 +433,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "device_class": "current",
         "state_class": "measurement",
         "value_template": "{{ value_json.current_meter_A | default(0) }}",
-        "enabled": True,
+        "enabled": False,
     },
     {
         "name": "Meter Current Phase B",
@@ -442,7 +442,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "device_class": "current",
         "state_class": "measurement",
         "value_template": "{{ value_json.current_meter_B | default(0) }}",
-        "enabled": True,
+        "enabled": False,
     },
     {
         "name": "Meter Current Phase C",
@@ -451,7 +451,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "device_class": "current",
         "state_class": "measurement",
         "value_template": "{{ value_json.current_meter_C | default(0) }}",
-        "enabled": True,
+        "enabled": False,
     },
     {
         "name": "Meter Frequency",  # Frequenz vom Meter
@@ -460,7 +460,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "device_class": "frequency",
         "state_class": "measurement",
         "value_template": "{{ value_json.frequency_meter | default(50) }}",
-        "enabled": True,
+        "enabled": False,
     },
     {
         "name": "Meter Power Factor",  # Leistungsfaktor vom Meter
@@ -469,7 +469,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "state_class": "measurement",
         "icon": "mdi:sine-wave",
         "value_template": "{{ value_json.power_factor_meter | default(0) }}",
-        "enabled": True,
+        "enabled": False,
     },
     # === Static Device Info ===
     {
@@ -573,7 +573,7 @@ TEXT_SENSORS: list[dict[str, Any]] = [
         "key": "meter_status",
         "icon": "mdi:meter-electric",
         "value_template": "{{ value_json.meter_status | default('unknown') }}",
-        "enabled": True,
+        "enabled": False,
         "entity_category": "diagnostic",
     },
     {
