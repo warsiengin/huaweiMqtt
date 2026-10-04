@@ -16,7 +16,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
     # Diese 4 Sensoren sind die wichtigsten - immer enabled, keine defaults nötig
     # (werden in transform.py via CRITICAL_DEFAULTS auf 0 gesetzt falls fehlend)
     {
-        "name": "Solar Power",  # AC-Ausgangsleistung des Inverters
+        "name": "Active Power",  # AC-Ausgangsleistung des Inverters
         "key": "power_active",
         "unit_of_measurement": "W",
         "device_class": "power",  # HA erkennt automatisch als Leistung
@@ -25,7 +25,7 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "enabled": True,
     },
     {
-        "name": "Input Power",  # DC-Eingangsleistung von PV-Strings
+        "name": "DC Power",  # DC-Eingangsleistung von PV-Strings
         "key": "power_input",
         "unit_of_measurement": "W",
         "device_class": "power",

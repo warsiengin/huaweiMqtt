@@ -252,6 +252,7 @@ class TestSensorConfig:
 
     def test_requested_sensor_default_states(self):
         sensors = _load_numeric_sensors() + _load_text_sensors()
+        names_by_key = {sensor["key"]: sensor["name"] for sensor in sensors}
         enabled_names = {
             "PV2 Voltage",
             "PV2 Current",
@@ -269,6 +270,8 @@ class TestSensorConfig:
 
         assert enabled_names <= {sensor["name"] for sensor in sensors if sensor.get("enabled", True)}
         assert all(sensor.get("enabled", True) is False for sensor in sensors if sensor["name"].startswith("Battery"))
+        assert names_by_key["power_active"] == "Active Power"
+        assert names_by_key["power_input"] == "DC Power"
 
     def test_grid_and_meter_sensors_disabled_by_default(self):
         sensors = _load_numeric_sensors() + _load_text_sensors()
