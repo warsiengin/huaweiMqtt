@@ -278,11 +278,17 @@ class TestSensorConfig:
         grid_and_meter_sensors = [
             sensor
             for sensor in sensors
-            if sensor["name"].startswith(("Grid ", "Meter ")) or sensor["name"].startswith("Line Voltage ")
+            if sensor["name"].casefold().startswith(("grid ", "meter ", "line voltage "))
+            or "grid" in sensor["key"].casefold()
+            or "meter" in sensor["key"].casefold()
         ]
 
         assert grid_and_meter_sensors
         assert all(sensor.get("enabled", True) is False for sensor in grid_and_meter_sensors)
+        assert all(
+            _build_sensor_config(sensor, "test/topic", {})["enabled_by_default"] is False
+            for sensor in grid_and_meter_sensors
+        )
 
 
 # ---------------------------------------------------------------------------
