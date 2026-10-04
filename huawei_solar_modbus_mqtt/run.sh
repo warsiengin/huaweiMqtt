@@ -94,7 +94,7 @@ else
     export HUAWEI_MQTT_PASSWORD=""
 fi
 
-HUAWEI_MQTT_TOPIC=$(get_required_config 'mqtt_topic' 'huaweiInverter_1')
+HUAWEI_MQTT_TOPIC=$(get_required_config 'mqtt_topic' 'huawei')
 export HUAWEI_MQTT_TOPIC
 
 HUAWEI_INSTANCE_ID=$(get_required_config 'instance_id')

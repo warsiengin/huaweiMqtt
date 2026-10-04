@@ -245,12 +245,12 @@ class TestConfigManagerValidation:
             )
             assert any("batch_max_gap" in err for err in config.validate())
 
-    @pytest.mark.parametrize("instance_id", ["", "inverter_1", "west-2"])
+    @pytest.mark.parametrize("instance_id", ["", "inv_1", "west-2"])
     def test_valid_instance_ids_are_accepted(self, tmp_path, instance_id):
         config = _make_config(tmp_path, {"instance_id": instance_id})
         assert not any("instance_id" in error for error in config.validate())
 
-    @pytest.mark.parametrize("instance_id", ["Inverter_1", "west inverter", "west/1", "x" * 33, 123])
+    @pytest.mark.parametrize("instance_id", ["inv_1", "west inverter", "west/1", "x" * 33, 123])
     def test_invalid_instance_ids_are_rejected(self, tmp_path, instance_id):
         config = _make_config(tmp_path, {"instance_id": instance_id})
         assert any("instance_id" in error for error in config.validate())
@@ -328,7 +328,7 @@ class TestConfigManagerEdgeCases:
         assert config.slave_id == 1
         assert config.mqtt_host == "core-mosquitto"
         assert config.mqtt_port == 1883
-        assert config.mqtt_topic == "huaweiInverter_1"
+        assert config.mqtt_topic == "huawei"
         assert config.instance_id == ""
         assert config.log_level == "INFO"
         assert config.status_timeout == 180

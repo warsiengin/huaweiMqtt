@@ -87,7 +87,7 @@ class ConfigManager:
             "mqtt_port": self._parse_int_env("HUAWEI_MQTT_PORT", default=1883),
             "mqtt_user": os.getenv("HUAWEI_MQTT_USER", ""),
             "mqtt_password": os.getenv("HUAWEI_MQTT_PASSWORD", ""),
-            "mqtt_topic": os.getenv("HUAWEI_MQTT_TOPIC", "huaweiInverter_1"),
+            "mqtt_topic": os.getenv("HUAWEI_MQTT_TOPIC", "huawei"),
             "instance_id": os.getenv("HUAWEI_INSTANCE_ID", ""),
             # Advanced settings
             "log_level": os.getenv("HUAWEI_LOG_LEVEL", "INFO"),
@@ -185,7 +185,7 @@ class ConfigManager:
     @property
     def mqtt_topic(self) -> str:
         """Get MQTT topic prefix, defaulting to the add-on's configured topic."""
-        return cast(str, self._config.get("mqtt_topic", "huaweiInverter_1"))
+        return cast(str, self._config.get("mqtt_topic", "huawei"))
 
     @property
     def instance_id(self) -> str:

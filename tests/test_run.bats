@@ -259,7 +259,7 @@ teardown() {
 
     source huawei_solar_modbus_mqtt/run.sh >/dev/null 2>&1
 
-    [ "$HUAWEI_MQTT_TOPIC" = "huaweiInverter_1" ]
+    [ "$HUAWEI_MQTT_TOPIC" = "huawei" ]
 }
 
 @test "Slave ID auto detect enabled" {
