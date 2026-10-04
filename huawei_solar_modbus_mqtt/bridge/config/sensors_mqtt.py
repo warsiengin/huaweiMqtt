@@ -1,49 +1,10 @@
 # huawei_solar_modbus_mqtt/bridge/config/sensors_mqtt.py
 
-"""
-MQTT Sensor Definitions for Home Assistant Discovery
-This file defines all the sensors that are automatically created in Home Assistant via MQTT Discovery. Each sensor describes how a value is extracted from the MQTT payload and displayed in HA.
-Sensor Types:
+"""Home Assistant MQTT Discovery definitions for numeric and text sensors.
 
-* NUMERIC_SENSORS: Sensors with numeric values and a unit_of_measurement.
-* TEXT_SENSORS: Sensors with string values (status, model name, etc.).
-
-MQTT Discovery:
-At startup, the add-on publishes a config message for each sensor to:
-homeassistant/sensor/huawei_solar/{key}/config
-Home Assistant reads this config and automatically creates entities:
-sensor.solar_power, sensor.battery_soc, sensor.grid_power, etc.
-Important Config Keys:
-
-* name: Display name in the Home Assistant UI.
-* key: MQTT key from transform.py (e.g., "power_active").
-* unit_of_measurement: Unit (W, kWh, V, A, %, °C, Hz).
-* device_class: HA Device Class (power, energy, voltage, current, battery, ...).
-* state_class: State Class for statistics:
-* measurement: Instantaneous value (can rise/fall).
-   * total: Accumulated value with resets (daily).
-   * total_increasing: Accumulated value without resets (lifetime).
-* value_template: Jinja2 template for extracting & filtering.
-* icon: MDI Icon (mdi:solar-power, mdi:battery, ...).
-* enabled: Sensor enabled by default? (False = manual activation required).
-* entity_category: Category (diagnostic = listed under "Diagnostics", None = main entity).
-
-value_template with default():
-
-* Problem: If a key is missing from the MQTT payload (register not read), HA would throw a template error: "dict object has no attribute".
-* Solution: {{ value_json.key | default(0) }}
-* Key exists → Value is used.
-   * Key missing → Fallback to the default value.
-
-Used for:
-
-* Optional hardware (Battery, Meter, String 3/4).
-* Registers that are sometimes invalid (65535 filtered out).
-
-See also: total_increasing_filter.py (applies additional filtering at the Python level).
-state_cl
-It looks like the text cut off right at the end with "state_cl" (likely meaning state_class or state_cluster). If you have the remaining part of the text, please share it so I can finish the translation for you!
-
+Each entry's ``key`` matches the transformed MQTT payload. Optional readings
+use a Jinja ``default`` in ``value_template`` so entities remain available when
+hardware or registers are absent.
 """
 
 from typing import Any

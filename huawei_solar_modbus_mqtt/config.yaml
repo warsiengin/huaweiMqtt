@@ -16,7 +16,7 @@ homeassistant_api: false
 host_network: false
 startup: services
 boot: auto
-logo: logo.png
+logo: icon.png
 icon: icon.png
 services:
   - mqtt:need
