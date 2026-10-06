@@ -139,9 +139,9 @@ class TestSensorsConsistent:
             "system_time",
             "failsafe_active_power_limit",
             "fast_power_scheduling",
-            "grid_code",
         }
 
         assert SPECIFICATION_ENABLED_SENSOR_KEYS == expected_keys
         assert enabled_keys == expected_keys
         assert all(sensor["enabled"] is False for sensor in sensors if sensor["key"] not in enabled_keys)
+        assert all(sensor["enabled"] is False for sensor in sensors if sensor["name"].startswith(("Grid ", "Meter ")))

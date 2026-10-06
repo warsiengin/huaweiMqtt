@@ -718,7 +718,6 @@ SPECIFICATION_ENABLED_SENSOR_KEYS = frozenset(
         "system_time",
         "failsafe_active_power_limit",
         "fast_power_scheduling",
-        "grid_code",
     },
 )
 
