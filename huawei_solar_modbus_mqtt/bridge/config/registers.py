@@ -1,13 +1,14 @@
 # huawei_solar_modbus_mqtt/bridge/config/registers.py
 
-"""Essential Modbus registers for Huawei SUN2000 inverters.
+"""Modbus registers polled from Huawei SUN2000 inverters.
 
 This module defines which registers to read from the inverter. Register names
 correspond to the huawei_solar library, based on the official Huawei Modbus
-specification.
+specification. Registers from the project Modbus specification that are not
+defined by huawei_solar are described separately for direct reads.
 
 Strategy:
-    Read only essential registers (58) instead of all available (100+) to
+    Read a selected register set instead of all available (100+) to
     reduce cycle time (2-3s vs 10+s), network load, and log size.
 
 Hardware compatibility:
@@ -23,9 +24,26 @@ Hardware compatibility:
 See also:
     - mappings.py: Register names → MQTT keys
     - sensors_mqtt.py: MQTT keys → Home Assistant sensors
+    - docs/Huawei_Solar_Inverter_Modbus_Specification.pdf
     - huawei_solar library docs: Complete register list
 """
 
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class SpecificationRegister:
+    """A PDF register read by address instead of the library's named API."""
+
+    address: int
+    format: str
+    gain: int
+    unit: str | None
+    invalid_values: tuple[int, ...]
+
+
+# Huawei library names for all RO/RW registers in the supplied specification,
+# plus the integration's existing optional readings.
 ESSENTIAL_REGISTERS = [
     # Power (W) - Current instantaneous values
     "active_power",  # AC output power (to grid/house)
@@ -118,4 +136,40 @@ ESSENTIAL_REGISTERS = [
     # Multi-Modul Batterie (optional)
     "storage_unit_1_state_of_capacity",  # Nur bei Multi-Modul
     "storage_unit_2_state_of_capacity",
+    #
+    # Additional RO/RW registers from the supplied specification
+    "fault_code",
+    "shutdown_time",
+    "system_time",
+    "failsafe_active_power_limit",
+    "fast_power_scheduling",
+    "grid_code_value",
 ]
+
+# Read two PDF-only registers directly and retain grid code as a raw JSON value
+# rather than the library's decoded enum object.
+SPECIFICATION_REGISTERS: dict[str, SpecificationRegister] = {
+    "failsafe_active_power_limit": SpecificationRegister(
+        address=42405,
+        format="i",
+        gain=1000,
+        unit="kW",
+        invalid_values=(2**31 - 1, -(2**31)),
+    ),
+    "fast_power_scheduling": SpecificationRegister(
+        address=45086,
+        format="H",
+        gain=1,
+        unit=None,
+        invalid_values=(2**16 - 1,),
+    ),
+    # Read this as its raw numeric code; the library's enum decoding is not a
+    # plain JSON value and would not be suitable for the MQTT payload.
+    "grid_code_value": SpecificationRegister(
+        address=42000,
+        format="H",
+        gain=1,
+        unit=None,
+        invalid_values=(2**16 - 1,),
+    ),
+}

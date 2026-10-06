@@ -1,0 +1,339 @@
+{
+  "profile_version": 1,
+  "purpose": "Handoff fixture for implementing a read-only Modbus client simulator for the PDF-confirmed requested sensors.",
+  "source": {
+    "file": "huaweiModbus_InverterRegisters_Imp.pdf",
+    "document": "Huawei Solar Inverter Modbus Interface Definitions",
+    "issue": "04",
+    "date": "2023-01-10",
+    "pages": [
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22
+    ],
+    "register_numbers": "44-82"
+  },
+  "protocol": {
+    "transport": "Modbus TCP",
+    "unit_id": null,
+    "function_code": null,
+    "pdf_address_convention": "Decimal addresses as printed in the PDF.",
+    "client_offset_conversion": null,
+    "byte_order": null,
+    "word_order_for_u32": null,
+    "read_only": true,
+    "must_resolve_before_client_test": [
+      "Configure the inverter Unit ID/slave address from the actual installation.",
+      "Confirm the Modbus function code and address offset expected by the client/library; the supplied PDF excerpt identifies registers as read-only but does not state the function code or zero-based offset rule.",
+      "Confirm the U32 word order expected by the client/library; the supplied PDF gives type and quantity, but not word order."
+    ]
+  },
+  "registers": [
+    {
+      "parameter_number": 1,
+      "pdf_register_number": 44,
+      "signal_name": "Device status",
+      "bridge_register_key": "device_status",
+      "home_assistant_sensor": "Inverter Status",
+      "mqtt_key": "inverter_status",
+      "created_by_default": true,
+      "address_decimal": 32089,
+      "access": "RO",
+      "data_type": "U16",
+      "unit": null,
+      "gain": 1,
+      "quantity_16bit_registers": 1,
+      "example": {
+        "meaning": "On-grid",
+        "raw_register_words": [
+          512
+        ],
+        "raw_value": 512,
+        "decoded_value": 512
+      }
+    },
+    {
+      "parameter_number": 24,
+      "pdf_register_number": 46,
+      "signal_name": "Startup time",
+      "bridge_register_key": "startup_time",
+      "home_assistant_sensor": "Inverter Startup Time",
+      "mqtt_key": "startup_time",
+      "created_by_default": true,
+      "address_decimal": 32091,
+      "access": "RO",
+      "data_type": "U32",
+      "unit": "epoch seconds, local time",
+      "gain": 1,
+      "quantity_16bit_registers": 2,
+      "example": {
+        "raw_value": 1700000000,
+        "raw_register_words_high_word_first": [
+          25939,
+          61696
+        ],
+        "decoded_value": 1700000000,
+        "word_order_note": "Example word sequence is high-word-first for illustration only; confirm client/library U32 word order before using as an expected response."
+      }
+    },
+    {
+      "parameter_number": 25,
+      "pdf_register_number": 47,
+      "signal_name": "Shutdown time",
+      "bridge_register_key": null,
+      "home_assistant_sensor": null,
+      "mqtt_key": null,
+      "bridge_reads_register": false,
+      "sensor_created": false,
+      "created_by_default": false,
+      "address_decimal": 32093,
+      "access": "RO",
+      "data_type": "U32",
+      "unit": "epoch seconds, local time",
+      "gain": 1,
+      "quantity_16bit_registers": 2,
+      "example": {
+        "raw_value": 1700003600,
+        "raw_register_words_high_word_first": [
+          25939,
+          65296
+        ],
+        "decoded_value": 1700003600,
+        "word_order_note": "Example word sequence is high-word-first for illustration only; confirm client/library U32 word order before using as an expected response."
+      }
+    },
+    {
+      "parameter_number": 3,
+      "pdf_register_number": 48,
+      "signal_name": "Accumulated energy yield",
+      "bridge_register_key": "accumulated_yield_energy",
+      "home_assistant_sensor": "Solar Total Yield",
+      "mqtt_key": "energy_yield_accumulated",
+      "created_by_default": true,
+      "address_decimal": 32106,
+      "access": "RO",
+      "data_type": "U32",
+      "unit": "kWh",
+      "gain": 100,
+      "quantity_16bit_registers": 2,
+      "example": {
+        "raw_value": 1234567,
+        "raw_register_words_high_word_first": [
+          18,
+          54919
+        ],
+        "decoded_value": 12345.67,
+        "word_order_note": "Example word sequence is high-word-first for illustration only; confirm client/library U32 word order before using as an expected response."
+      }
+    },
+    {
+      "parameter_number": 2,
+      "pdf_register_number": 49,
+      "signal_name": "Daily energy yield",
+      "bridge_register_key": "daily_yield_energy",
+      "home_assistant_sensor": "Solar Daily Yield",
+      "mqtt_key": "energy_yield_day",
+      "created_by_default": true,
+      "address_decimal": 32114,
+      "access": "RO",
+      "data_type": "U32",
+      "unit": "kWh",
+      "gain": 100,
+      "quantity_16bit_registers": 2,
+      "example": {
+        "raw_value": 1234,
+        "raw_register_words_high_word_first": [
+          0,
+          1234
+        ],
+        "decoded_value": 12.34,
+        "word_order_note": "Example word sequence is high-word-first for illustration only; confirm client/library U32 word order before using as an expected response."
+      }
+    }
+  ],
+  "requested_parameters_without_numeric_definition_in_supplied_pdf": [
+    {
+      "parameter_number": 6,
+      "signal": "Active power",
+      "bridge_register_key": "active_power",
+      "home_assistant_sensor": "Active Power",
+      "mqtt_key": "power_active",
+      "unit": "W",
+      "created_by_default": true
+    },
+    {
+      "parameter_number": 17,
+      "signal": "Grid line voltage A-B",
+      "bridge_register_key": "line_voltage_A_B",
+      "home_assistant_sensor": "Line Voltage A-B",
+      "mqtt_key": "voltage_line_AB",
+      "unit": "V",
+      "created_by_default": false
+    },
+    {
+      "parameter_number": 17,
+      "signal": "Grid line voltage B-C",
+      "bridge_register_key": "line_voltage_B_C",
+      "home_assistant_sensor": "Line Voltage B-C",
+      "mqtt_key": "voltage_line_BC",
+      "unit": "V",
+      "created_by_default": false
+    },
+    {
+      "parameter_number": 17,
+      "signal": "Grid line voltage C-A",
+      "bridge_register_key": "line_voltage_C_A",
+      "home_assistant_sensor": "Line Voltage C-A",
+      "mqtt_key": "voltage_line_CA",
+      "unit": "V",
+      "created_by_default": false
+    },
+    {
+      "parameter_number": 18,
+      "signal": "Grid current phase A",
+      "bridge_register_key": "active_grid_A_current",
+      "home_assistant_sensor": "Meter Current Phase A",
+      "mqtt_key": "current_meter_A",
+      "unit": "A",
+      "created_by_default": false
+    },
+    {
+      "parameter_number": 18,
+      "signal": "Grid current phase B",
+      "bridge_register_key": "active_grid_B_current",
+      "home_assistant_sensor": "Meter Current Phase B",
+      "mqtt_key": "current_meter_B",
+      "unit": "A",
+      "created_by_default": false
+    },
+    {
+      "parameter_number": 18,
+      "signal": "Grid current phase C",
+      "bridge_register_key": "active_grid_C_current",
+      "home_assistant_sensor": "Meter Current Phase C",
+      "mqtt_key": "current_meter_C",
+      "unit": "A",
+      "created_by_default": false
+    },
+    {
+      "parameter_number": 20,
+      "signal": "Grid frequency",
+      "bridge_register_key": "grid_frequency",
+      "home_assistant_sensor": "Grid Frequency",
+      "mqtt_key": "frequency_grid",
+      "unit": "Hz",
+      "created_by_default": false
+    },
+    {
+      "parameter_number": 22,
+      "signal": "Insulation resistance",
+      "bridge_register_key": "insulation_resistance",
+      "home_assistant_sensor": "Insulation Resistance",
+      "mqtt_key": "inverter_insulation_resistance",
+      "unit": "MΩ",
+      "created_by_default": true
+    },
+    {
+      "parameter_number": 5,
+      "signal": "DC power",
+      "bridge_register_key": "input_power",
+      "home_assistant_sensor": "DC Power",
+      "mqtt_key": "power_input",
+      "unit": "W",
+      "created_by_default": true
+    },
+    {
+      "parameter_number": 9,
+      "signal": "PV1 voltage",
+      "bridge_register_key": "pv_01_voltage",
+      "home_assistant_sensor": "PV1 Voltage",
+      "mqtt_key": "voltage_PV1",
+      "unit": "V",
+      "created_by_default": true
+    },
+    {
+      "parameter_number": 10,
+      "signal": "PV1 current",
+      "bridge_register_key": "pv_01_current",
+      "home_assistant_sensor": "PV1 Current",
+      "mqtt_key": "current_PV1",
+      "unit": "A",
+      "created_by_default": true
+    },
+    {
+      "parameter_number": 11,
+      "signal": "PV2 voltage",
+      "bridge_register_key": "pv_02_voltage",
+      "home_assistant_sensor": "PV2 Voltage",
+      "mqtt_key": "voltage_PV2",
+      "unit": "V",
+      "created_by_default": true
+    },
+    {
+      "parameter_number": 12,
+      "signal": "PV2 current",
+      "bridge_register_key": "pv_02_current",
+      "home_assistant_sensor": "PV2 Current",
+      "mqtt_key": "current_PV2",
+      "unit": "A",
+      "created_by_default": true
+    },
+    {
+      "parameter_number": 13,
+      "signal": "PV3 voltage",
+      "bridge_register_key": "pv_03_voltage",
+      "home_assistant_sensor": "PV3 Voltage",
+      "mqtt_key": "voltage_PV3",
+      "unit": "V",
+      "created_by_default": true
+    },
+    {
+      "parameter_number": 14,
+      "signal": "PV3 current",
+      "bridge_register_key": "pv_03_current",
+      "home_assistant_sensor": "PV3 Current",
+      "mqtt_key": "current_PV3",
+      "unit": "A",
+      "created_by_default": true
+    },
+    {
+      "parameter_number": 15,
+      "signal": "PV4 voltage",
+      "bridge_register_key": "pv_04_voltage",
+      "home_assistant_sensor": "PV4 Voltage",
+      "mqtt_key": "voltage_PV4",
+      "unit": "V",
+      "created_by_default": true
+    },
+    {
+      "parameter_number": 16,
+      "signal": "PV4 current",
+      "bridge_register_key": "pv_04_current",
+      "home_assistant_sensor": "PV4 Current",
+      "mqtt_key": "current_PV4",
+      "unit": "A",
+      "created_by_default": true
+    },
+    {
+      "parameter_number": 23,
+      "signal": "Cabinet temperature",
+      "bridge_register_key": "internal_temperature",
+      "home_assistant_sensor": "Inverter Temperature",
+      "mqtt_key": "inverter_temperature",
+      "unit": "°C",
+      "created_by_default": true,
+      "note": "The bridge calls this internal_temperature and creates Inverter Temperature; the PDF excerpt does not give its numeric definition."
+    }
+  ],
+  "simulation_guardrails": [
+    "This is a source-backed starter fixture, not a complete ready-to-run simulator configuration.",
+    "Only the five listed PDF register definitions have numeric addresses in this profile.",
+    "Do not substitute guessed addresses, function codes, Unit IDs, or U32 word order for unresolved protocol details.",
+    "The daily and accumulated energy examples use raw integer values divided by gain 100 to produce kWh."
+  ]
+}

@@ -700,6 +700,19 @@ class TestReadRegisters:
         assert result == {"reg1": 100, "reg2": 200, "reg3": 300}
 
     @pytest.mark.asyncio
+    async def test_reads_specification_only_register_by_address(self, mock_client):
+        """Reads a PDF-listed register missing from huawei_solar by its raw address."""
+        from bridge.main import read_registers
+
+        mock_client.read_struct_format = AsyncMock(return_value=(50000,))
+        with patch("bridge.main.ESSENTIAL_REGISTERS", ["failsafe_active_power_limit"]):
+            result = await read_registers(mock_client)
+
+        assert result["failsafe_active_power_limit"].value == 50
+        assert result["failsafe_active_power_limit"].unit == "kW"
+        mock_client.read_struct_format.assert_awaited_once_with(42405, format_struct=">i")
+
+    @pytest.mark.asyncio
     async def test_smart_batching_with_custom_gap(self, mock_client):
         """Smart batching with custom gap reads all registers."""
         mock_client.get_multiple.return_value = [100, 200, 300, 400]

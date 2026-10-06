@@ -71,7 +71,7 @@ The main runtime logic lives in `huawei_solar_modbus_mqtt/bridge/main.py`, while
 
 ## Batch Reading Mode (v1.10.1+)
 
-Reads all 66 registers in 3-5 batches instead of individually. **Performance improvement:** up to 75% faster on high-latency networks. Automatic fallback to sequential mode if batching fails.
+Groups library-defined register reads into address-based batches instead of reading each individually. Registers present in the supplied specification but not in the library are read directly by address. Automatic fallback to sequential mode is used if batching fails.
 
 **Configuration:**
 ```yaml
@@ -80,10 +80,17 @@ batch_max_gap: 50             # Max address gap per batch (recommended: 30-50)
 ```
 
 **Details:**
-- `enable_batching: true` - Groups registers by Modbus address proximity, reducing 66 individual reads to typically 3-5 batch requests.
+- `enable_batching: true` - Groups supported registers by Modbus address proximity to reduce the number of Modbus requests.
 - `batch_max_gap: 50` - Maximum address gap (in Modbus units) within a batch. Smaller values create more batches with less risk of exceeding the inverter's internal limit (~125 registers per batch). Larger values reduce batch count but increase the risk of batch failures.
 - **Recommended:** `30-50` for most installations. Only increase to `100` if you have a stable, high-performance network.
 - Disable (`enable_batching: false`) if you experience repeated batch failures.
+
+## Sensor Defaults
+
+Home Assistant enables the RO/RW sensor entities listed in
+[`docs/Huawei_Solar_Inverter_Modbus_Specification.pdf`](docs/Huawei_Solar_Inverter_Modbus_Specification.pdf)
+by default. Other discovered sensors remain disabled by default and can be
+enabled manually. Write-only commands are not polled.
 
 ## EVCC Integration (No Modbus Proxy!)
 

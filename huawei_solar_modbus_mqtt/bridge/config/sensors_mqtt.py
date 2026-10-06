@@ -547,6 +547,30 @@ NUMERIC_SENSORS: list[dict[str, Any]] = [
         "enabled": False,
         "entity_category": "diagnostic",
     },
+    {
+        "name": "Failsafe Active Power Limit",
+        "key": "failsafe_active_power_limit",
+        "unit_of_measurement": "kW",
+        "device_class": "power",
+        "state_class": "measurement",
+        "value_template": "{{ value_json.failsafe_active_power_limit | default(0) }}",
+        "enabled": False,
+        "entity_category": "diagnostic",
+    },
+    {
+        "name": "Fast Power Scheduling",
+        "key": "fast_power_scheduling",
+        "value_template": "{{ value_json.fast_power_scheduling | default(0) }}",
+        "enabled": False,
+        "entity_category": "diagnostic",
+    },
+    {
+        "name": "Grid Code",
+        "key": "grid_code",
+        "value_template": "{{ value_json.grid_code | default(0) }}",
+        "enabled": False,
+        "entity_category": "diagnostic",
+    },
 ]
 
 # Text-Sensoren ohne unit_of_measurement
@@ -614,6 +638,22 @@ TEXT_SENSORS: list[dict[str, Any]] = [
         "enabled": True,
         "entity_category": "diagnostic",
     },
+    {
+        "name": "Inverter Shutdown Time",
+        "key": "shutdown_time",
+        "device_class": "timestamp",
+        "value_template": "{{ value_json.shutdown_time | default(None) }}",
+        "enabled": False,
+        "entity_category": "diagnostic",
+    },
+    {
+        "name": "Inverter System Time",
+        "key": "system_time",
+        "device_class": "timestamp",
+        "value_template": "{{ value_json.system_time | default(None) }}",
+        "enabled": False,
+        "entity_category": "diagnostic",
+    },
     # === Alarm Registers ===
     {
         "name": "Alarm 1",
@@ -639,4 +679,48 @@ TEXT_SENSORS: list[dict[str, Any]] = [
         "enabled": True,
         "entity_category": "diagnostic",
     },
+    {
+        "name": "Fault Code",
+        "key": "fault_code",
+        "value_template": "{{ value_json.fault_code | default(0) }}",
+        "enabled": False,
+        "entity_category": "diagnostic",
+    },
 ]
+
+# By default, enable only the RO/RW sensor entities listed in the supplied
+# inverter specification. Other discovered entities remain available to enable
+# manually in Home Assistant.
+SPECIFICATION_ENABLED_SENSOR_KEYS = frozenset(
+    {
+        "power_active",
+        "power_reactive",
+        "power_input",
+        "power_active_peak_day",
+        "power_factor",
+        "inverter_efficiency",
+        "voltage_PV1",
+        "current_PV1",
+        "voltage_PV2",
+        "current_PV2",
+        "voltage_PV3",
+        "current_PV3",
+        "voltage_PV4",
+        "current_PV4",
+        "inverter_status",
+        "fault_code",
+        "inverter_temperature",
+        "inverter_insulation_resistance",
+        "energy_yield_day",
+        "energy_yield_accumulated",
+        "startup_time",
+        "shutdown_time",
+        "system_time",
+        "failsafe_active_power_limit",
+        "fast_power_scheduling",
+        "grid_code",
+    },
+)
+
+for sensor in NUMERIC_SENSORS + TEXT_SENSORS:
+    sensor["enabled"] = sensor["key"] in SPECIFICATION_ENABLED_SENSOR_KEYS

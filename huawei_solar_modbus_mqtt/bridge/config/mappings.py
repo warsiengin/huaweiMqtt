@@ -80,10 +80,16 @@ REGISTER_MAPPING: dict[str, str] = {
     "state_1": "inverter_state_1",
     "state_2": "inverter_state_2",
     "startup_time": "startup_time",
+    "shutdown_time": "shutdown_time",
+    "system_time": "system_time",
     "internal_temperature": "inverter_temperature",
     "efficiency": "inverter_efficiency",
     "insulation_resistance": "inverter_insulation_resistance",
     "power_factor": "power_factor",
+    "fault_code": "fault_code",
+    "failsafe_active_power_limit": "failsafe_active_power_limit",
+    "fast_power_scheduling": "fast_power_scheduling",
+    "grid_code_value": "grid_code",
     #
     # Device information
     "model_name": "model_name",

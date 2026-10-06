@@ -30,9 +30,11 @@ from typing import Any, cast
 
 from huawei_solar import AsyncHuaweiSolarClient, RegisterName, create_tcp_client
 from huawei_solar.exceptions import ConnectionException, ConnectionInterruptedException, ReadException
+from huawei_solar.register_definitions.base import Result
+from tmodbus.exceptions import ModbusConnectionError, ModbusResponseError, TModbusError
 
 from .batch_builder import BatchBuilder
-from .config.registers import ESSENTIAL_REGISTERS
+from .config.registers import ESSENTIAL_REGISTERS, SPECIFICATION_REGISTERS
 from .config_manager import ConfigManager, ConfigurationError
 from .error_tracker import ConnectionErrorTracker, ErrorType
 from .logging_utils import get_logger
@@ -303,7 +305,30 @@ async def _read_single_register(client: AsyncHuaweiSolarClient, name: str) -> tu
     skipped with a DEBUG log line instead of aborting the entire read cycle.
     """
     try:
-        value = await client.get(cast(RegisterName, name))
+        if definition := SPECIFICATION_REGISTERS.get(name):
+            try:
+                (raw_value,) = await client.read_struct_format(
+                    definition.address,
+                    format_struct=f">{definition.format}",
+                )
+            except ModbusResponseError as err:
+                raise ReadException(
+                    f"Failed to read specification register {name}",
+                    modbus_exception_code=err.error_code,
+                ) from err
+            except ModbusConnectionError as err:
+                raise ConnectionInterruptedException(
+                    f"Connection failed reading specification register {name}",
+                ) from err
+            except TModbusError as err:
+                raise ReadException(f"Failed to read specification register {name}: {err}") from err
+
+            if raw_value in definition.invalid_values:
+                value = Result(value=None, unit=None)
+            else:
+                value = Result(value=raw_value / definition.gain, unit=definition.unit)
+        else:
+            value = await client.get(cast(RegisterName, name))
         return name, value
     except READ_EXCEPTIONS:
         logger.debug("Skipping '%s' (not available)", name)
@@ -452,8 +477,8 @@ async def read_registers(
 
     for name in ESSENTIAL_REGISTERS:
         register_start = time.time()
-        try:
-            data[name] = await client.get(cast(RegisterName, name))
+        if (result := await _read_single_register(client, name)) is not None:
+            data[result[0]] = result[1]
             register_duration = time.time() - register_start
             register_timings.append((name, register_duration))
             successful += 1
@@ -462,7 +487,7 @@ async def read_registers(
             if register_duration > slow_register_threshold:
                 logger.debug("⏱️ Slow register '%s': %.3fs", name, register_duration)
 
-        except READ_EXCEPTIONS:
+        else:
             register_duration = time.time() - register_start
             register_timings.append((name, register_duration))
             logger.debug("Skipping '%s' (not available, took %.3fs)", name, register_duration)
